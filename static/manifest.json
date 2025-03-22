@@ -1,0 +1,29 @@
+{
+  "name": "BadukTube",
+  "short_name": "BadukTube",
+  "description": "Free Lectures Database for Baduk/Weiqi/Go Game",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "/static/images/logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/favicons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/favicons/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

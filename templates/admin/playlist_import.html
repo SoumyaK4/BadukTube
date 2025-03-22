@@ -1,0 +1,160 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Import YouTube Playlist{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>Import YouTube Playlist</h1>
+
+    <form method="POST" class="mb-4">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+        {% if not videos %}
+        <!-- Step 1: Enter YouTube API Key and Playlist URL -->
+        <input type="hidden" name="step" value="1">
+
+        <div class="mb-3">
+            <label for="youtube_api_key" class="form-label">YouTube API Key</label>
+            <input type="text" class="form-control" id="youtube_api_key" name="youtube_api_key" value="{{ youtube_api_key }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="playlist_url" class="form-label">YouTube Playlist URL</label>
+            <input type="url" class="form-control" id="playlist_url" name="playlist_url" 
+                   placeholder="https://www.youtube.com/playlist?list=..." value="{{ playlist_url }}" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Fetch Playlist</button>
+        {% endif %}
+
+        {% if videos and current_video %}
+        <!-- Step 2: Process each video -->
+        <input type="hidden" name="step" value="2">
+        <input type="hidden" name="youtube_api_key" value="{{ youtube_api_key }}">
+        <input type="hidden" name="playlist_url" value="{{ playlist_url }}">
+        <input type="hidden" name="video_index" value="{{ current_video_index }}">
+
+        <div class="card mb-4">
+            <div class="row g-0">
+                <div class="col-md-4">
+                    <img src="{{ current_video.thumbnail_url }}" class="img-fluid rounded-start" alt="{{ current_video.title }}">
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ current_video.title }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">Published: {{ current_video.published_at.strftime('%Y-%m-%d') }}</small>
+                            {% if current_video.duration_seconds %}
+                            <small class="text-muted ms-2">Duration: {{ current_video.duration_seconds|int//60 }}:{{ '%02d'|format(current_video.duration_seconds|int%60) }}</small>
+                            {% endif %}
+                        </p>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rank" class="form-label">Rank</label>
+                                    <select class="form-select" id="rank" name="rank" required>
+                                        <option value="">Select a rank</option>
+                                        {% for rank in ranks %}
+                                        <option value="{{ rank.id }}">{{ rank.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="topic" class="form-label">Topic</label>
+                                    <select class="form-select" id="topic" name="topic" required>
+                                        <option value="">Select a topic</option>
+                                        {% for topic in topics %}
+                                        <option value="{{ topic.id }}">{{ topic.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tag" class="form-label">Tag (Optional)</label>
+                                    <select class="form-select" id="tag" name="tag">
+                                        <option value="">Select a tag</option>
+                                        {% for tag in tags %}
+                                        <option value="{{ tag.id }}">{{ tag.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="collection" class="form-label">Collection (Optional)</label>
+                                    <select class="form-select" id="collection" name="collection">
+                                        <option value="">Select a collection</option>
+                                        {% for collection in collections %}
+                                        <option value="{{ collection.id }}">{{ collection.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <button type="submit" class="btn btn-success" name="action" value="save">Save & Continue</button>
+                            <button type="submit" class="btn btn-secondary" name="action" value="skip">Skip & Continue</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress mb-3">
+            <div class="progress-bar" role="progressbar" 
+                 style="width: {{ (current_video_index / videos|length * 100)|int }}%;" 
+                 aria-valuenow="{{ (current_video_index / videos|length * 100)|int }}" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100">
+                {{ current_video_index + 1 }} of {{ videos|length }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if videos and not current_video %}
+        <div class="alert alert-success">
+            All videos processed! {{ videos|length }} videos in playlist.
+        </div>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-primary">Return to Admin Panel</a>
+        {% endif %}
+    </form>
+
+    {% if videos %}
+    <h3>Playlist Videos ({{ videos|length }})</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Thumbnail</th>
+                    <th>Title</th>
+                    <th>Video ID</th>
+                    <th>Published Date</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in videos %}
+                <tr {% if loop.index0 == current_video_index %}class="table-primary"{% endif %}>
+                    <td>{{ loop.index }}</td>
+                    <td><img src="{{ video.thumbnail_url }}" width="120" alt="{{ video.title }}"></td>
+                    <td>{{ video.title }}</td>
+                    <td>{{ video.video_id }}</td>
+                    <td>{{ video.published_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ video.duration_seconds // 60 }}:{{ '%02d' % (video.duration_seconds % 60) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
