@@ -242,25 +242,15 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAdditionalFeatures();
 });
 
-// Video modal functionality
+// Video modal functionality using only the video.js implementation
 function openVideoModal(videoId, title) {
-    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
-    const modalTitle = document.getElementById('videoModalLabel');
-    const playerContainer = document.getElementById('player-container');
-
-    // Set modal title
-    modalTitle.textContent = title;
-
-    // Create YouTube iframe
-    playerContainer.innerHTML = `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-
-    // Show modal
-    modal.show();
-
-    // Clean up when modal is hidden
-    document.getElementById('videoModal').addEventListener('hidden.bs.modal', function() {
-        playerContainer.innerHTML = '';
-    });
+    // Only use the video.js implementation which has proper PIP support
+    if (typeof window.openYouTubeModal === 'function') {
+        window.openYouTubeModal(videoId, title);
+    } else {
+        console.error("YouTube modal player not available. Make sure video.js is loaded.");
+        alert("Unable to play video. Please try again later.");
+    }
 }
 
 // Format duration from seconds to MM:SS

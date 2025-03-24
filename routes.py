@@ -457,10 +457,20 @@ def import_data():
                         # Check if topic already exists
                         existing_topic = Topic.query.filter_by(name=topic_data['name']).first()
                         if not existing_topic:
-                            new_topic = Topic(name=topic_data['name'])
+                            # Try to preserve original ID
+                            new_topic = Topic(id=topic_data['id'], name=topic_data['name'])
                             db.session.add(new_topic)
-                            db.session.flush()
-                            topic_id_map[topic_data['id']] = new_topic.id
+                            try:
+                                # Try to flush to see if we can use the original ID
+                                db.session.flush()
+                                topic_id_map[topic_data['id']] = new_topic.id
+                            except Exception as e:
+                                # If ID conflict, rollback and try without specifying ID
+                                db.session.rollback()
+                                new_topic = Topic(name=topic_data['name'])
+                                db.session.add(new_topic)
+                                db.session.flush()
+                                topic_id_map[topic_data['id']] = new_topic.id
                         else:
                             topic_id_map[topic_data['id']] = existing_topic.id
 
@@ -470,10 +480,20 @@ def import_data():
                         # Check if tag already exists
                         existing_tag = Tag.query.filter_by(name=tag_data['name']).first()
                         if not existing_tag:
-                            new_tag = Tag(name=tag_data['name'])
+                            # Try to preserve original ID
+                            new_tag = Tag(id=tag_data['id'], name=tag_data['name'])
                             db.session.add(new_tag)
-                            db.session.flush()
-                            tag_id_map[tag_data['id']] = new_tag.id
+                            try:
+                                # Try to flush to see if we can use the original ID
+                                db.session.flush()
+                                tag_id_map[tag_data['id']] = new_tag.id
+                            except Exception as e:
+                                # If ID conflict, rollback and try without specifying ID
+                                db.session.rollback()
+                                new_tag = Tag(name=tag_data['name'])
+                                db.session.add(new_tag)
+                                db.session.flush()
+                                tag_id_map[tag_data['id']] = new_tag.id
                         else:
                             tag_id_map[tag_data['id']] = existing_tag.id
 
@@ -483,10 +503,20 @@ def import_data():
                         # Check if rank already exists
                         existing_rank = Rank.query.filter_by(name=rank_data['name']).first()
                         if not existing_rank:
-                            new_rank = Rank(name=rank_data['name'])
+                            # Try to preserve original ID
+                            new_rank = Rank(id=rank_data['id'], name=rank_data['name'])
                             db.session.add(new_rank)
-                            db.session.flush()
-                            rank_id_map[rank_data['id']] = new_rank.id
+                            try:
+                                # Try to flush to see if we can use the original ID
+                                db.session.flush()
+                                rank_id_map[rank_data['id']] = new_rank.id
+                            except Exception as e:
+                                # If ID conflict, rollback and try without specifying ID
+                                db.session.rollback()
+                                new_rank = Rank(name=rank_data['name'])
+                                db.session.add(new_rank)
+                                db.session.flush()
+                                rank_id_map[rank_data['id']] = new_rank.id
                         else:
                             rank_id_map[rank_data['id']] = existing_rank.id
 
@@ -496,15 +526,31 @@ def import_data():
                         # Check if collection already exists
                         existing_collection = Collection.query.filter_by(name=collection_data['name']).first()
                         if not existing_collection:
+                            # Try to preserve original ID
                             new_collection = Collection(
+                                id=collection_data['id'],
                                 name=collection_data['name'],
                                 description=collection_data.get('description', ''),
                                 is_paid=collection_data.get('is_paid', False),
                                 created_at=datetime.fromisoformat(collection_data['created_at']) if collection_data.get('created_at') else datetime.utcnow()
                             )
                             db.session.add(new_collection)
-                            db.session.flush()
-                            collection_id_map[collection_data['id']] = new_collection.id
+                            try:
+                                # Try to flush to see if we can use the original ID
+                                db.session.flush()
+                                collection_id_map[collection_data['id']] = new_collection.id
+                            except Exception as e:
+                                # If ID conflict, rollback and try without specifying ID
+                                db.session.rollback()
+                                new_collection = Collection(
+                                    name=collection_data['name'],
+                                    description=collection_data.get('description', ''),
+                                    is_paid=collection_data.get('is_paid', False),
+                                    created_at=datetime.fromisoformat(collection_data['created_at']) if collection_data.get('created_at') else datetime.utcnow()
+                                )
+                                db.session.add(new_collection)
+                                db.session.flush()
+                                collection_id_map[collection_data['id']] = new_collection.id
                         else:
                             collection_id_map[collection_data['id']] = existing_collection.id
 
@@ -514,7 +560,9 @@ def import_data():
                         # Check if lecture already exists by YouTube ID
                         existing_lecture = Lecture.query.filter_by(youtube_id=lecture_data['youtube_id']).first()
                         if not existing_lecture:
+                            # Try to preserve original ID
                             new_lecture = Lecture(
+                                id=lecture_data['id'],
                                 title=lecture_data['title'],
                                 youtube_id=lecture_data['youtube_id'],
                                 thumbnail_url=lecture_data['thumbnail_url'],
@@ -525,26 +573,63 @@ def import_data():
                             # Set rank
                             if lecture_data.get('rank_id') and lecture_data['rank_id'] in rank_id_map:
                                 new_lecture.rank_id = rank_id_map[lecture_data['rank_id']]
-
-                            # Add topics
-                            if 'topic_ids' in lecture_data:
-                                for old_topic_id in lecture_data['topic_ids']:
-                                    if old_topic_id in topic_id_map:
-                                        topic = Topic.query.get(topic_id_map[old_topic_id])
-                                        if topic:
-                                            new_lecture.topics.append(topic)
-
-                            # Add tags
-                            if 'tag_ids' in lecture_data:
-                                for old_tag_id in lecture_data['tag_ids']:
-                                    if old_tag_id in tag_id_map:
-                                        tag = Tag.query.get(tag_id_map[old_tag_id])
-                                        if tag:
-                                            new_lecture.tags.append(tag)
-
+                            
                             db.session.add(new_lecture)
-                            db.session.flush()
-                            lecture_id_map[lecture_data['id']] = new_lecture.id
+                            try:
+                                # Try to flush to see if we can use the original ID
+                                db.session.flush()
+                                
+                                # Add topics
+                                if 'topic_ids' in lecture_data:
+                                    for old_topic_id in lecture_data['topic_ids']:
+                                        if old_topic_id in topic_id_map:
+                                            topic = Topic.query.get(topic_id_map[old_topic_id])
+                                            if topic:
+                                                new_lecture.topics.append(topic)
+
+                                # Add tags
+                                if 'tag_ids' in lecture_data:
+                                    for old_tag_id in lecture_data['tag_ids']:
+                                        if old_tag_id in tag_id_map:
+                                            tag = Tag.query.get(tag_id_map[old_tag_id])
+                                            if tag:
+                                                new_lecture.tags.append(tag)
+                                
+                                lecture_id_map[lecture_data['id']] = new_lecture.id
+                            except Exception as e:
+                                # If ID conflict, rollback and try without specifying ID
+                                db.session.rollback()
+                                new_lecture = Lecture(
+                                    title=lecture_data['title'],
+                                    youtube_id=lecture_data['youtube_id'],
+                                    thumbnail_url=lecture_data['thumbnail_url'],
+                                    publish_date=datetime.fromisoformat(lecture_data['publish_date']),
+                                    duration_seconds=lecture_data.get('duration_seconds',0)
+                                )
+
+                                # Set rank
+                                if lecture_data.get('rank_id') and lecture_data['rank_id'] in rank_id_map:
+                                    new_lecture.rank_id = rank_id_map[lecture_data['rank_id']]
+
+                                # Add topics
+                                if 'topic_ids' in lecture_data:
+                                    for old_topic_id in lecture_data['topic_ids']:
+                                        if old_topic_id in topic_id_map:
+                                            topic = Topic.query.get(topic_id_map[old_topic_id])
+                                            if topic:
+                                                new_lecture.topics.append(topic)
+
+                                # Add tags
+                                if 'tag_ids' in lecture_data:
+                                    for old_tag_id in lecture_data['tag_ids']:
+                                        if old_tag_id in tag_id_map:
+                                            tag = Tag.query.get(tag_id_map[old_tag_id])
+                                            if tag:
+                                                new_lecture.tags.append(tag)
+
+                                db.session.add(new_lecture)
+                                db.session.flush()
+                                lecture_id_map[lecture_data['id']] = new_lecture.id
                         else:
                             lecture_id_map[lecture_data['id']] = existing_lecture.id
 
@@ -702,6 +787,13 @@ def reset_data():
         db.session.execute(db.text("DELETE FROM tag"))
         db.session.execute(db.text("DELETE FROM rank"))
         db.session.execute(db.text("DELETE FROM collection"))
+        
+        # Reset the auto-increment counters
+        db.session.execute(db.text("ALTER SEQUENCE lecture_id_seq RESTART WITH 1"))
+        db.session.execute(db.text("ALTER SEQUENCE topic_id_seq RESTART WITH 1"))
+        db.session.execute(db.text("ALTER SEQUENCE tag_id_seq RESTART WITH 1"))
+        db.session.execute(db.text("ALTER SEQUENCE rank_id_seq RESTART WITH 1"))
+        db.session.execute(db.text("ALTER SEQUENCE collection_id_seq RESTART WITH 1"))
         db.session.commit()
 
         flash('All data has been reset successfully')
@@ -749,7 +841,7 @@ def create_admin():
     admin.set_password("BadukAdmin2025!")
     db.session.add(admin)
     db.session.commit()
-    print("Admin user created successfully!")
+    logging.info("Admin user created successfully!")
 @app.route('/collections')
 def collections():
     collections = Collection.query.filter_by(is_paid=False).all()
@@ -1173,10 +1265,10 @@ def playlist_import():
             playlist_id = extract_playlist_id(playlist_url)
             videos, _ = fetch_playlist_videos(youtube_api_key, playlist_id)
 
+            current_video = videos[video_index]
+            
             # If user chose to save this video
             if action == 'save':
-                current_video = videos[video_index]
-
                 # Get form data
                 rank_id = request.form.get('rank')
                 topic_id = request.form.get('topic')
@@ -1218,6 +1310,8 @@ def playlist_import():
                     flash(f'Video "{current_video["title"]}" added successfully')
                 else:
                     flash(f'Video "{current_video["title"]}" already exists in the database')
+            elif action == 'skip':
+                flash(f'Skipped video "{current_video["title"]}"')
 
             # Move to next video
             video_index += 1
@@ -1253,11 +1347,11 @@ def admin_login():
             return redirect(url_for('admin_panel'))
         else:
             flash('Invalid username or password')
-            # Print for debugging
+            # Log authentication failures at info level
             if user:
-                print(f"User found: {user.username}, Password incorrect")
+                logging.info(f"Failed login attempt: Password incorrect for user {user.username}")
             else:
-                print(f"User not found: {form.username.data}")
+                logging.info(f"Failed login attempt: User not found: {form.username.data}")
     return render_template('admin/login.html', form=form)
 
 # Service worker route

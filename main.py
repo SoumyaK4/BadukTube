@@ -12,5 +12,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # Start the application
+    # Start the application (production mode)
     app.run(host="0.0.0.0", port=5000, debug=False)

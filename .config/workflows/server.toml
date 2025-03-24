@@ -1,0 +1,3 @@
+[commands.run]
+command = ["python", "main.py"]
+persistent = true

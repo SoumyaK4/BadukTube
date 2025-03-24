@@ -101,7 +101,8 @@
 
                         <div class="d-flex justify-content-between mt-3">
                             <button type="submit" class="btn btn-success" name="action" value="save">Save & Continue</button>
-                            <button type="submit" class="btn btn-secondary" name="action" value="skip">Skip & Continue</button>
+                            <!-- We use JavaScript to create a separate form submission for the skip button -->
+                            <button type="button" class="btn btn-secondary" id="skip-button">Skip & Continue</button>
                         </div>
                     </div>
                 </div>
@@ -157,4 +158,42 @@
     </div>
     {% endif %}
 </div>
+
+{% if videos and current_video %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skipButton = document.getElementById('skip-button');
+    if (skipButton) {
+        skipButton.addEventListener('click', function() {
+            // Create a hidden form to submit the skip action
+            const skipForm = document.createElement('form');
+            skipForm.method = 'POST';
+            skipForm.action = '{{ url_for("playlist_import") }}';
+            
+            // Add all the necessary hidden fields
+            const fields = [
+                { name: '_csrf_token', value: '{{ csrf_token() }}' },
+                { name: 'step', value: '2' },
+                { name: 'youtube_api_key', value: '{{ youtube_api_key }}' },
+                { name: 'playlist_url', value: '{{ playlist_url }}' },
+                { name: 'video_index', value: '{{ current_video_index }}' },
+                { name: 'action', value: 'skip' }
+            ];
+            
+            fields.forEach(field => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = field.name;
+                input.value = field.value;
+                skipForm.appendChild(input);
+            });
+            
+            // Append to body and submit
+            document.body.appendChild(skipForm);
+            skipForm.submit();
+        });
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

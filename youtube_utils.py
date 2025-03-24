@@ -99,7 +99,7 @@ def get_video_details(api_key, video_ids):
 
         return result
     except Exception as e:
-        print(f"Error fetching video details: {e}")
+        logging.error(f"Error fetching video details: {e}")
         return {}
 
 def get_youtube_video_info(youtube_url):
