@@ -3,7 +3,9 @@
  * Main JavaScript file
  * Contains general functionality for the Baduk Lectures application
  */
-document.addEventListener('DOMContentLoaded', function() {
+ 
+// Use jQuery's ready function to ensure compatibility with libraries
+$(function() {
     // Initialize Bootstrap components
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     if (tooltipTriggerList.length > 0) {

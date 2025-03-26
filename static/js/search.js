@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentPage = data.current_page;
 
                     // Show/hide load more button
-                    loadMoreButton.style.display = hasMore ? 'block' : 'none';
+                    loadMoreButton.style.display = hasMore ? 'inline-block' : 'none';
                 } else {
                     if (resetResults) {
                         resultsContainer.innerHTML = '<div class="col-12 text-center">No results found</div>';

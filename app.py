@@ -4,9 +4,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import os
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # Create Flask app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -20,7 +24,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Set secret key for session management
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_key_for_development')
+app.secret_key = os.environ.get("SESSION_SECRET")
 
 # YouTube API configuration
 app.config['YOUTUBE_API_KEY'] = os.environ.get('YOUTUBE_API_KEY', '')

@@ -46,6 +46,34 @@
 
 /* Admin panel styles */
 
+/* Select2 customization */
+.select2-container--classic .select2-selection--multiple {
+    background-color: var(--input-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+.select2-container--classic .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--secondary-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+.select2-container--classic .select2-results__option {
+    background-color: var(--input-bg) !important;
+    color: var(--text-color) !important;
+}
+
+.select2-container--classic .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: var(--hover-bg) !important;
+    color: var(--text-color) !important;
+}
+
+.select2-container--classic .select2-dropdown {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
 /* Video duration badge */
 .duration-badge {
     position: absolute;

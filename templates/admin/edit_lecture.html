@@ -54,8 +54,8 @@
 
                         <div class="mb-3">
                             {{ form.tags.label(class="form-label") }}
-                            {{ form.tags(class="form-select", multiple=True, size=5) }}
-                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple tags</small>
+                            {{ form.tags(class="form-select select2-multi", multiple=True) }}
+                            <small class="form-text text-muted">Click to select multiple tags</small>
                             {% if form.tags.errors %}
                             <div class="invalid-feedback d-block">
                                 {% for error in form.tags.errors %}
@@ -80,8 +80,8 @@
 
                         <div class="mb-3">
                             {{ form.collections.label(class="form-label") }}
-                            {{ form.collections(class="form-select", multiple=True, size=5) }}
-                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple collections</small>
+                            {{ form.collections(class="form-select select2-multi", multiple=True) }}
+                            <small class="form-text text-muted">Click to select multiple collections</small>
                             {% if form.collections.errors %}
                             <div class="invalid-feedback d-block">
                                 {% for error in form.collections.errors %}
@@ -101,4 +101,27 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(function() {
+        // Initialize Select2 for multi-select dropdowns with performance optimizations
+        if ($.fn.select2) {
+            $('.select2-multi').each(function() {
+                if (!$(this).data('select2')) {  // Only initialize if not already initialized
+                    $(this).select2({
+                        theme: 'classic',
+                        width: '100%',
+                        placeholder: 'Select options',
+                        allowClear: true,
+                        minimumResultsForSearch: 8, // Only show search for larger lists
+                        selectOnClose: true,        // Select highlighted option when dropdown closes
+                        closeOnSelect: false        // Keep dropdown open after selection
+                    });
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
