@@ -77,24 +77,24 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="tag" class="form-label">Tag (Optional)</label>
-                                    <select class="form-select" id="tag" name="tag">
-                                        <option value="">Select a tag</option>
+                                    <label for="tags" class="form-label">Tags (Optional, Multiple)</label>
+                                    <select class="form-select" id="tags" name="tags" multiple>
                                         {% for tag in tags %}
                                         <option value="{{ tag.id }}">{{ tag.name }}</option>
                                         {% endfor %}
                                     </select>
+                                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple tags</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="collection" class="form-label">Collection (Optional)</label>
-                                    <select class="form-select" id="collection" name="collection">
-                                        <option value="">Select a collection</option>
+                                    <label for="collections" class="form-label">Collections (Optional, Multiple)</label>
+                                    <select class="form-select" id="collections" name="collections" multiple>
                                         {% for collection in collections %}
                                         <option value="{{ collection.id }}">{{ collection.name }}</option>
                                         {% endfor %}
                                     </select>
+                                    <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple collections</small>
                                 </div>
                             </div>
                         </div>
@@ -162,6 +162,7 @@
 {% if videos and current_video %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle the skip button
     const skipButton = document.getElementById('skip-button');
     if (skipButton) {
         skipButton.addEventListener('click', function() {
@@ -171,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             skipForm.action = '{{ url_for("playlist_import") }}';
             
             // Add all the necessary hidden fields
+            // Create basic fields
             const fields = [
                 { name: '_csrf_token', value: '{{ csrf_token() }}' },
                 { name: 'step', value: '2' },
@@ -179,6 +181,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 { name: 'video_index', value: '{{ current_video_index }}' },
                 { name: 'action', value: 'skip' }
             ];
+            
+            // Get current tag and collection selections (to preserve them across skips)
+            const tagsSelect = document.getElementById('tags');
+            const collectionsSelect = document.getElementById('collections');
+            
+            // Add all selected tags
+            if (tagsSelect) {
+                Array.from(tagsSelect.selectedOptions).forEach(option => {
+                    fields.push({ name: 'tags', value: option.value });
+                });
+            }
+            
+            // Add all selected collections
+            if (collectionsSelect) {
+                Array.from(collectionsSelect.selectedOptions).forEach(option => {
+                    fields.push({ name: 'collections', value: option.value });
+                });
+            }
             
             fields.forEach(field => {
                 const input = document.createElement('input');
@@ -192,6 +212,35 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(skipForm);
             skipForm.submit();
         });
+    }
+    
+    // Add height for better UI on multiple selects
+    const multiSelects = document.querySelectorAll('select[multiple]');
+    multiSelects.forEach(select => {
+        select.style.height = '150px';
+    });
+    
+    // Display selected count for multiple selects
+    const tagsSelect = document.getElementById('tags');
+    const collectionsSelect = document.getElementById('collections');
+    
+    function updateSelectedCount(select) {
+        const label = select.previousElementSibling;
+        const selectedOptions = Array.from(select.selectedOptions);
+        const count = selectedOptions.length;
+        
+        const originalLabel = label.textContent.split('(')[0].trim();
+        const countText = count > 0 ? ` (${count} selected)` : ' (Optional, Multiple)';
+        
+        label.textContent = originalLabel + countText;
+    }
+    
+    if (tagsSelect) {
+        tagsSelect.addEventListener('change', () => updateSelectedCount(tagsSelect));
+    }
+    
+    if (collectionsSelect) {
+        collectionsSelect.addEventListener('change', () => updateSelectedCount(collectionsSelect));
     }
 });
 </script>

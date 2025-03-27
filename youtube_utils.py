@@ -1,8 +1,7 @@
 import re
 import requests
 from datetime import datetime
-import iso8601
-import isodate
+import logging
 
 def extract_playlist_id(playlist_url):
     """Extract the playlist ID from a YouTube playlist URL."""
@@ -54,7 +53,7 @@ def fetch_playlist_videos(api_key, playlist_id):
                 duration_seconds = 0
                 if video_id in video_details:
                     duration_str = video_details[video_id].get('duration', 'PT0S')
-                    duration_seconds = int(isodate.parse_duration(duration_str).total_seconds())
+                    duration_seconds = parse_duration(duration_str)
 
                 video = {
                     'title': snippet['title'],
@@ -155,7 +154,6 @@ def parse_duration(duration_iso):
         return 0
 
 
-import logging
 from utils import extract_youtube_video_id
 
 logging.basicConfig(level=logging.INFO)

@@ -1193,8 +1193,8 @@ def playlist_import():
                 # Get form data
                 rank_id = request.form.get('rank')
                 topic_id = request.form.get('topic')
-                tag_id = request.form.get('tag')
-                collection_id = request.form.get('collection')
+                tag_ids = request.form.getlist('tags')
+                collection_ids = request.form.getlist('collections')
 
                 # Check if video already exists
                 existing_lecture = Lecture.query.filter_by(youtube_id=current_video['video_id']).first()
@@ -1214,17 +1214,19 @@ def playlist_import():
                     if topic:
                         new_lecture.topics.append(topic)
 
-                    # Add tag (optional)
-                    if tag_id:
-                        tag = Tag.query.get(tag_id)
-                        if tag:
-                            new_lecture.tags.append(tag)
+                    # Add tags (optional, multiple)
+                    if tag_ids:
+                        for tag_id in tag_ids:
+                            tag = Tag.query.get(tag_id)
+                            if tag:
+                                new_lecture.tags.append(tag)
 
-                    # Add to collection
-                    if collection_id:
-                        collection = Collection.query.get(collection_id)
-                        if collection:
-                            collection.lectures.append(new_lecture)
+                    # Add to collections (optional, multiple)
+                    if collection_ids:
+                        for collection_id in collection_ids:
+                            collection = Collection.query.get(collection_id)
+                            if collection:
+                                collection.lectures.append(new_lecture)
 
                     db.session.add(new_lecture)
                     db.session.commit()
