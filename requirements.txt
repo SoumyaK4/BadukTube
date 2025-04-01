@@ -13,7 +13,7 @@ gunicorn==23.0.0
 idna==3.10
 isodate==0.7.2
 itsdangerous==2.2.0
-Jinja2==3.1.5
+Jinja2==3.1.6
 MarkupSafe==3.0.2
 packaging==24.2
 psycopg2-binary==2.9.10
