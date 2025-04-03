@@ -357,44 +357,42 @@ function ensureDurationBadges() {
 // Add this function call to the first DOMContentLoaded event listener
 // at the end of the first addEventListener function
 function setupAdditionalFeatures() {
-    // Run duration badge function immediately
-    setTimeout(ensureDurationBadges, 100);
+    // Use a single debounced function for all duration badge operations
+    const debouncedEnsureBadges = debounce(ensureDurationBadges, 200);
     
-    // Handle window resize to ensure duration badges remain visible on mobile
-    window.addEventListener('resize', ensureDurationBadges);
+    // Run duration badge function just once on initial setup
+    debouncedEnsureBadges();
+    
+    // Optimize resize handler with debounce
+    window.addEventListener('resize', debouncedEnsureBadges);
 
-    // Handle page visibility changes (when user returns to the tab)
+    // Handle page visibility changes more efficiently
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
-            setTimeout(ensureDurationBadges, 200);
+            debouncedEnsureBadges();
         }
     });
     
-    // Add mutation observer to watch for dynamic content changes
+    // Add optimized mutation observer
     const resultsContainer = document.getElementById('results-container');
-    if (resultsContainer) {
+    if (resultsContainer) {        
         const observer = new MutationObserver(function(mutations) {
-            setTimeout(ensureDurationBadges, 100);
-            
-            // Run it again after a longer delay to catch any late changes
-            setTimeout(ensureDurationBadges, 500);
-            setTimeout(ensureDurationBadges, 1000);
+            // Only update duration badges if childList changed (new elements added)
+            const hasStructuralChanges = mutations.some(mutation => mutation.type === 'childList');
+            if (hasStructuralChanges) {
+                debouncedEnsureBadges();
+            }
         });
         
         observer.observe(resultsContainer, { 
             childList: true,
             subtree: true,
-            attributes: true
+            attributes: false // Don't watch attributes which creates excessive callbacks
         });
     }
     
-    // Apply duration badges on initial load and window load event
-    ensureDurationBadges();
+    // Single event listener for load with single timeout
     window.addEventListener('load', function() {
-        ensureDurationBadges();
-        // Run again after delays to ensure all elements are loaded
-        setTimeout(ensureDurationBadges, 500);
-        setTimeout(ensureDurationBadges, 1000);
-        setTimeout(ensureDurationBadges, 2000);
+        debouncedEnsureBadges();
     });
 }

@@ -29,6 +29,7 @@ def about():
 # Latest route has been removed
 
 @app.route('/')
+@app.route('/search')
 def search():
     # Get metadata using utility function
     metadata = get_metadata()

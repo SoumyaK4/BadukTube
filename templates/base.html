@@ -47,7 +47,7 @@
     <!-- Navigation with Hamburger Mobile Menu -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('search') }}">
+            <a class="navbar-brand" href="/">
                 <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="Baduk Lectures" width="40" height="40" class="d-inline-block align-top me-2">
                 BadukTube v0.7.8
             </a>
@@ -159,6 +159,6 @@
     <script src="{{ url_for('static', filename='js/register-sw.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/pwa-install.js') }}" defer></script>
     {% block extra_scripts %}{% endblock %}
-    
+
 </body>
 </html>
