@@ -10,7 +10,7 @@ class LoginForm(FlaskForm):
 class LectureForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     youtube_url = StringField('YouTube URL', validators=[DataRequired(), URL()])
-    topics = SelectField('Topic', coerce=int)
+    topics = SelectMultipleField('Topics', coerce=int)
     tags = SelectMultipleField('Tags', coerce=int)
     rank = SelectField('Rank', coerce=int)
     collections = SelectMultipleField('Collections', coerce=int)

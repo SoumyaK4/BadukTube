@@ -38,10 +38,10 @@
                             <small class="text-muted">Duration: {{ lecture.duration_seconds|int//60 }}:{{ '%02d'|format(lecture.duration_seconds|int%60) }}</small>
                             {% endif %}
                         </div>
-
                         <div class="mb-3">
                             {{ form.topics.label(class="form-label") }}
-                            {{ form.topics(class="form-select") }}
+                            {{ form.topics(class="form-select select2-multi", multiple=True) }}
+                            <small class="form-text text-muted">Click to select multiple topics</small>
                             {% if form.topics.errors %}
                             <div class="invalid-feedback d-block">
                                 {% for error in form.topics.errors %}
@@ -49,7 +49,6 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-
                         </div>
 
                         <div class="mb-3">

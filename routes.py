@@ -132,7 +132,7 @@ def edit_lecture(lecture_id):
                 lecture.publish_date = video_info['publish_date']
 
             # Update relationships
-            selected_topic = Topic.query.get(form.topics.data)
+            selected_topics = Topic.query.filter(Topic.id.in_(form.topics.data)).all()
             selected_tags = Tag.query.filter(Tag.id.in_(form.tags.data)).all()
             selected_rank = Rank.query.get(form.rank.data)
             selected_collections = Collection.query.filter(Collection.id.in_(form.collections.data)).all()
@@ -142,8 +142,7 @@ def edit_lecture(lecture_id):
             lecture.tags = []
 
             # Add new selections
-            if selected_topic:
-                lecture.topics.append(selected_topic)
+            lecture.topics = selected_topics
             lecture.tags = selected_tags
 
             lecture.rank_id = selected_rank.id if selected_rank else None
@@ -176,11 +175,10 @@ def edit_lecture(lecture_id):
         form.title.data = lecture.title
         form.youtube_url.data = f"https://youtu.be/{lecture.youtube_id}"
 
-        # Set form data to first item in each relationship for topic
-        if lecture.topics:
-            form.topics.data = lecture.topics[0].id
+        # Set topics data (multi-select)
+        form.topics.data = [topic.id for topic in lecture.topics]
 
-        # Set tags (now multi-select)
+        # Set tags (multi-select)
         form.tags.data = [tag.id for tag in lecture.tags]
 
         form.rank.data = lecture.rank_id if lecture.rank_id else None
