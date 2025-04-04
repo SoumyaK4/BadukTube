@@ -333,207 +333,103 @@ def manage_metadata():
 @login_required
 def export_data():
     try:
-        from flask import Response
-        import ijson
-        import json
-        from datetime import datetime
-        import io
-        
-        def generate():
-            """Generator function to stream JSON data"""
-            # Start JSON object
-            yield '{\n'
+        # Get all data
+        lectures = Lecture.query.options(
+            db.joinedload(Lecture.topics),
+            db.joinedload(Lecture.tags)
+        ).all()
+        topics = Topic.query.all()
+        tags = Tag.query.all()
+        ranks = Rank.query.all()
+        collections = Collection.query.all()
+
+        # Prepare data for export
+        export_data = {
+            'lectures': [],
+            'topics': [],
+            'tags': [],
+            'ranks': [],
+            'collections': []
+        }
+
+        # Add topics
+        for topic in topics:
+            export_data['topics'].append({
+                'id': topic.id,
+                'name': topic.name
+            })
+
+        # Add tags
+        for tag in tags:
+            export_data['tags'].append({
+                'id': tag.id,
+                'name': tag.name
+            })
+
+        # Add ranks
+        for rank in ranks:
+            export_data['ranks'].append({
+                'id': rank.id,
+                'name': rank.name
+            })
+
+        # Add collections
+        for collection in collections:
+            # Get lectures with their positions
+            lecture_positions = []
+            collection_lectures = db.session.query(
+                collection_lecture, Lecture
+            ).join(
+                Lecture, Lecture.id == collection_lecture.c.lecture_id
+            ).filter(
+                collection_lecture.c.collection_id == collection.id
+            ).all()
+
+            for cl, lecture in collection_lectures:
+                position = cl.position if hasattr(cl, 'position') else 0
+                lecture_positions.append({
+                    'lecture_id': lecture.id,
+                    'position': position
+                })
+
+            # Sort by position
+            lecture_positions.sort(key=lambda x: x['position'])
+
+            export_data['collections'].append({
+                'id': collection.id,
+                'name': collection.name,
+                'description': collection.description,
+                'is_paid': collection.is_paid,
+                'created_at': collection.created_at.isoformat() if collection.created_at else None,
+                'lectures': lecture_positions
+            })
+
+        # Add lectures
+        for lecture in lectures:
+            collection_ids = [c.id for c in db.session.query(Collection.id).join(
+                collection_lecture, 
+                Collection.id == collection_lecture.c.collection_id
+            ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
             
-            # Process topics with pagination
-            yield '"topics": [\n'
-            page = 1
-            per_page = 100
-            first_topic = True
-            
-            while True:
-                topics_page = Topic.query.paginate(page=page, per_page=per_page, error_out=False)
-                if not topics_page.items:
-                    break
-                    
-                for topic in topics_page.items:
-                    if not first_topic:
-                        yield ',\n'
-                    first_topic = False
-                    
-                    topic_data = {
-                        'id': topic.id,
-                        'name': topic.name
-                    }
-                    yield json.dumps(topic_data)
-                
-                if not topics_page.has_next:
-                    break
-                page += 1
-            
-            yield '\n],\n'
-            
-            # Process tags with pagination
-            yield '"tags": [\n'
-            page = 1
-            first_tag = True
-            
-            while True:
-                tags_page = Tag.query.paginate(page=page, per_page=per_page, error_out=False)
-                if not tags_page.items:
-                    break
-                    
-                for tag in tags_page.items:
-                    if not first_tag:
-                        yield ',\n'
-                    first_tag = False
-                    
-                    tag_data = {
-                        'id': tag.id,
-                        'name': tag.name
-                    }
-                    yield json.dumps(tag_data)
-                
-                if not tags_page.has_next:
-                    break
-                page += 1
-            
-            yield '\n],\n'
-            
-            # Process ranks with pagination
-            yield '"ranks": [\n'
-            page = 1
-            first_rank = True
-            
-            while True:
-                ranks_page = Rank.query.paginate(page=page, per_page=per_page, error_out=False)
-                if not ranks_page.items:
-                    break
-                    
-                for rank in ranks_page.items:
-                    if not first_rank:
-                        yield ',\n'
-                    first_rank = False
-                    
-                    rank_data = {
-                        'id': rank.id,
-                        'name': rank.name
-                    }
-                    yield json.dumps(rank_data)
-                
-                if not ranks_page.has_next:
-                    break
-                page += 1
-            
-            yield '\n],\n'
-            
-            # Process collections with pagination
-            yield '"collections": [\n'
-            page = 1
-            first_collection = True
-            
-            while True:
-                collections_page = Collection.query.paginate(page=page, per_page=per_page, error_out=False)
-                if not collections_page.items:
-                    break
-                    
-                for collection in collections_page.items:
-                    if not first_collection:
-                        yield ',\n'
-                    first_collection = False
-                    
-                    # Get lectures with their positions
-                    lecture_positions = []
-                    collection_lectures = db.session.query(
-                        collection_lecture, Lecture
-                    ).join(
-                        Lecture, Lecture.id == collection_lecture.c.lecture_id
-                    ).filter(
-                        collection_lecture.c.collection_id == collection.id
-                    ).all()
-                    
-                    for cl, lecture in collection_lectures:
-                        position = cl.position if hasattr(cl, 'position') else 0
-                        lecture_positions.append({
-                            'lecture_id': lecture.id,
-                            'position': position
-                        })
-                    
-                    # Sort by position
-                    lecture_positions.sort(key=lambda x: x['position'])
-                    
-                    collection_data = {
-                        'id': collection.id,
-                        'name': collection.name,
-                        'description': collection.description,
-                        'is_paid': collection.is_paid,
-                        'created_at': collection.created_at.isoformat() if collection.created_at else None,
-                        'lectures': lecture_positions
-                    }
-                    yield json.dumps(collection_data)
-                
-                if not collections_page.has_next:
-                    break
-                page += 1
-            
-            yield '\n],\n'
-            
-            # Process lectures with pagination
-            yield '"lectures": [\n'
-            page = 1
-            first_lecture = True
-            
-            while True:
-                lectures_page = Lecture.query.options(
-                    db.joinedload(Lecture.topics),
-                    db.joinedload(Lecture.tags)
-                ).paginate(page=page, per_page=per_page, error_out=False)
-                
-                if not lectures_page.items:
-                    break
-                
-                for lecture in lectures_page.items:
-                    if not first_lecture:
-                        yield ',\n'
-                    first_lecture = False
-                    
-                    # Get collections for this lecture efficiently
-                    collection_ids = [c.id for c in db.session.query(Collection.id).join(
-                        collection_lecture, 
-                        Collection.id == collection_lecture.c.collection_id
-                    ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
-                    
-                    lecture_data = {
-                        'id': lecture.id,
-                        'title': lecture.title,
-                        'youtube_id': lecture.youtube_id,
-                        'thumbnail_url': lecture.thumbnail_url,
-                        'publish_date': lecture.publish_date.isoformat(),
-                        'duration_seconds': lecture.duration_seconds,
-                        'rank_id': lecture.rank_id,
-                        'topic_ids': [topic.id for topic in lecture.topics],
-                        'tag_ids': [tag.id for tag in lecture.tags],
-                        'collection_ids': collection_ids
-                    }
-                    yield json.dumps(lecture_data)
-                
-                if not lectures_page.has_next:
-                    break
-                page += 1
-            
-            yield '\n]\n'
-            
-            # End JSON object
-            yield '}'
-        
-        # Stream the response
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        return Response(
-            generate(),
-            mimetype='application/json',
-            headers={
-                'Content-Disposition': f'attachment; filename=baduk_lectures_export_{timestamp}.json'
+            lecture_data = {
+                'id': lecture.id,
+                'title': lecture.title,
+                'youtube_id': lecture.youtube_id,
+                'thumbnail_url': lecture.thumbnail_url,
+                'publish_date': lecture.publish_date.isoformat(),
+                'duration_seconds': lecture.duration_seconds,
+                'rank_id': lecture.rank_id,
+                'topic_ids': [topic.id for topic in lecture.topics],
+                'tag_ids': [tag.id for tag in lecture.tags],
+                'collection_ids': collection_ids
             }
-        )
+            export_data['lectures'].append(lecture_data)
+
+        # Return JSON file for download
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        response = jsonify(export_data)
+        response.headers.set('Content-Disposition', 'attachment', filename=f'baduk_lectures_export_{timestamp}.json')
+        return response
     except Exception as e:
         logging.error(f"Error exporting data: {str(e)}")
         flash(f'Error exporting data: {str(e)}')
