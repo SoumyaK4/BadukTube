@@ -333,14 +333,7 @@ def manage_metadata():
 @login_required
 def export_data():
     try:
-        # Get all data
-        lectures = Lecture.query.all()
-        topics = Topic.query.all()
-        tags = Tag.query.all()
-        ranks = Rank.query.all()
-        collections = Collection.query.all()
-
-        # Prepare data for export
+        # Initialize export data structure
         export_data = {
             'lectures': [],
             'topics': [],
@@ -349,46 +342,49 @@ def export_data():
             'collections': []
         }
 
+        # Process data in smaller chunks to avoid memory issues
         # Add topics
-        for topic in topics:
+        for topic in Topic.query.yield_per(100):
             export_data['topics'].append({
                 'id': topic.id,
                 'name': topic.name
             })
 
-        # Add tags
-        for tag in tags:
+        # Add tags 
+        for tag in Tag.query.yield_per(100):
             export_data['tags'].append({
                 'id': tag.id,
                 'name': tag.name
             })
 
         # Add ranks
-        for rank in ranks:
+        for rank in Rank.query.yield_per(100):
             export_data['ranks'].append({
                 'id': rank.id,
                 'name': rank.name
             })
 
-        # Add collections
-        for collection in collections:
-            # Get lectures with their positions
+        # Process collections in chunks
+        for collection in Collection.query.yield_per(20):
             lecture_positions = []
-            for lecture in collection.lectures:
-                position_data = db.session.query(collection_lecture.c.position).filter(
-                    collection_lecture.c.collection_id == collection.id,
-                    collection_lecture.c.lecture_id == lecture.id
-                ).first()
-
-                position = position_data[0] if position_data else 0
+            
+            # Get collection-lecture relationships with position in one query
+            position_data = db.session.query(
+                collection_lecture.c.lecture_id, 
+                collection_lecture.c.position
+            ).filter(
+                collection_lecture.c.collection_id == collection.id
+            ).all()
+            
+            for lecture_id, position in position_data:
                 lecture_positions.append({
-                    'lecture_id': lecture.id,
-                    'position': position
+                    'lecture_id': lecture_id,
+                    'position': position or 0
                 })
-
+            
             # Sort by position
             lecture_positions.sort(key=lambda x: x['position'])
-
+            
             export_data['collections'].append({
                 'id': collection.id,
                 'name': collection.name,
@@ -398,8 +394,19 @@ def export_data():
                 'lectures': lecture_positions
             })
 
-        # Add lectures
-        for lecture in lectures:
+        # Process lectures in chunks
+        lecture_query = Lecture.query.options(
+            db.joinedload(Lecture.topics),
+            db.joinedload(Lecture.tags),
+            db.joinedload(Lecture.rank)
+        ).yield_per(20)
+        
+        for lecture in lecture_query:
+            # Get collection IDs for this lecture with a single query
+            collection_ids = db.session.query(collection_lecture.c.collection_id).filter(
+                collection_lecture.c.lecture_id == lecture.id
+            ).all()
+            
             lecture_data = {
                 'id': lecture.id,
                 'title': lecture.title,
@@ -410,14 +417,11 @@ def export_data():
                 'rank_id': lecture.rank_id,
                 'topic_ids': [topic.id for topic in lecture.topics],
                 'tag_ids': [tag.id for tag in lecture.tags],
-                'collection_ids': [c.id for c in Collection.query.join(
-                    collection_lecture, 
-                    Collection.id == collection_lecture.c.collection_id
-                ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
+                'collection_ids': [c[0] for c in collection_ids]
             }
             export_data['lectures'].append(lecture_data)
 
-        # Return JSON file for download
+        # Return JSON file for download with streaming response
         response = jsonify(export_data)
         response.headers.set('Content-Disposition', 'attachment', filename='baduk_lectures_export.json')
         return response
@@ -613,14 +617,7 @@ def import_data():
 @login_required
 def reset_data():
     try:
-        # Get all data first for backup
-        lectures = Lecture.query.all()
-        topics = Topic.query.all()
-        tags = Tag.query.all()
-        ranks = Rank.query.all()
-        collections = Collection.query.all()
-
-        # Prepare data for export (same as in export_data)
+        # Initialize export data structure
         export_data = {
             'lectures': [],
             'topics': [],
@@ -629,43 +626,45 @@ def reset_data():
             'collections': []
         }
 
-        # Add topics
-        for topic in topics:
+        # Process data in smaller chunks to avoid memory issues
+        # Add topics with chunking
+        for topic in Topic.query.yield_per(100):
             export_data['topics'].append({
                 'id': topic.id,
                 'name': topic.name
             })
 
-        # Add tags
-        for tag in tags:
+        # Add tags with chunking
+        for tag in Tag.query.yield_per(100):
             export_data['tags'].append({
                 'id': tag.id,
                 'name': tag.name
             })
 
-        # Add ranks
-        for rank in ranks:
+        # Add ranks with chunking
+        for rank in Rank.query.yield_per(100):
             export_data['ranks'].append({
                 'id': rank.id,
                 'name': rank.name
             })
 
-        # Add collections with full details
-        for collection in collections:
-            # Get lectures with their positions
+        # Process collections in chunks
+        for collection in Collection.query.yield_per(20):
+            # Get collection-lecture relationships with position in one query
+            position_data = db.session.query(
+                collection_lecture.c.lecture_id, 
+                collection_lecture.c.position
+            ).filter(
+                collection_lecture.c.collection_id == collection.id
+            ).all()
+            
             lecture_positions = []
-            for lecture in collection.lectures:
-                position_data = db.session.query(collection_lecture.c.position).filter(
-                    collection_lecture.c.collection_id == collection.id,
-                    collection_lecture.c.lecture_id == lecture.id
-                ).first()
-
-                position = position_data[0] if position_data else 0
+            for lecture_id, position in position_data:
                 lecture_positions.append({
-                    'lecture_id': lecture.id,
-                    'position': position
+                    'lecture_id': lecture_id,
+                    'position': position or 0
                 })
-
+            
             # Sort by position
             lecture_positions.sort(key=lambda x: x['position'])
             
@@ -678,8 +677,19 @@ def reset_data():
                 'lectures': lecture_positions
             })
 
-        # Add lectures
-        for lecture in lectures:
+        # Process lectures in chunks with eager loading
+        lecture_query = Lecture.query.options(
+            db.joinedload(Lecture.topics),
+            db.joinedload(Lecture.tags),
+            db.joinedload(Lecture.rank)
+        ).yield_per(20)
+        
+        for lecture in lecture_query:
+            # Get collection IDs for this lecture with a single query
+            collection_ids = db.session.query(collection_lecture.c.collection_id).filter(
+                collection_lecture.c.lecture_id == lecture.id
+            ).all()
+            
             lecture_data = {
                 'id': lecture.id,
                 'title': lecture.title,
@@ -690,10 +700,7 @@ def reset_data():
                 'rank_id': lecture.rank_id,
                 'topic_ids': [topic.id for topic in lecture.topics],
                 'tag_ids': [tag.id for tag in lecture.tags],
-                'collection_ids': [c.id for c in Collection.query.join(
-                    collection_lecture, 
-                    Collection.id == collection_lecture.c.collection_id
-                ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
+                'collection_ids': [c[0] for c in collection_ids]
             }
             export_data['lectures'].append(lecture_data)
 
