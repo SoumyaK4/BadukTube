@@ -48,14 +48,23 @@ def extract_youtube_video_id(url):
         logging.error(f"Error parsing YouTube URL: {str(e)}")
         return None
 
-def get_youtube_video_info(url):
+def get_youtube_video_info(url, api_key=None):
     # Extract video ID from URL
     video_id = extract_youtube_video_id(url)
     if not video_id:
         raise ValueError('Invalid YouTube URL')
 
+    # Use provided API key or fall back to environment variable
+    youtube_api_key = api_key or os.environ.get("YOUTUBE_API_KEY")
+    
+    if not youtube_api_key:
+        logging.warning("No YouTube API key provided - using fallback method")
+        # If no API key is available, use the function from youtube_utils
+        from youtube_utils import get_youtube_video_info as fallback_get_info
+        return fallback_get_info(url, api_key)
+    
     # Get video info using YouTube Data API
-    api_url = f'https://www.googleapis.com/youtube/v3/videos?id={video_id}&key={os.environ.get("YOUTUBE_API_KEY")}&part=snippet,contentDetails,statistics'
+    api_url = f'https://www.googleapis.com/youtube/v3/videos?id={video_id}&key={youtube_api_key}&part=snippet,contentDetails,statistics'
     response = requests.get(api_url)
 
     if response.status_code != 200:

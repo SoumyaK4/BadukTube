@@ -49,17 +49,27 @@ def fetch_playlist_videos(api_key, playlist_id):
                 snippet = item['snippet']
                 video_id = item['contentDetails']['videoId']
 
-                # Get duration from video details
+                # Get duration and upload date from video details
                 duration_seconds = 0
+                upload_date = None
+                
                 if video_id in video_details:
                     duration_str = video_details[video_id].get('duration', 'PT0S')
                     duration_seconds = parse_duration(duration_str)
-
+                    
+                    # Use actual upload date instead of playlist addition date if available
+                    if video_details[video_id].get('upload_date'):
+                        upload_date = datetime.fromisoformat(video_details[video_id]['upload_date'].replace('Z', '+00:00'))
+                
+                # If no upload date was found in video details, fall back to playlist date
+                if not upload_date:
+                    upload_date = datetime.fromisoformat(snippet['publishedAt'].replace('Z', '+00:00'))
+                    
                 video = {
                     'title': snippet['title'],
                     'video_id': video_id,
                     'thumbnail_url': snippet.get('thumbnails', {}).get('high', {}).get('url', ''),
-                    'published_at': datetime.fromisoformat(snippet['publishedAt'].replace('Z', '+00:00')),
+                    'published_at': upload_date,
                     'duration_seconds': duration_seconds
                 }
                 videos.append(video)
@@ -74,7 +84,7 @@ def fetch_playlist_videos(api_key, playlist_id):
         return [], str(e)
 
 def get_video_details(api_key, video_ids):
-    """Get detailed information about videos including duration."""
+    """Get detailed information about videos including duration and upload date."""
     if not video_ids:
         return {}
 
@@ -82,18 +92,22 @@ def get_video_details(api_key, video_ids):
     ids_str = ','.join(video_ids[:50])
 
     try:
-        url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id={ids_str}&key={api_key}"
+        # Include snippet part to get upload date, along with contentDetails for duration
+        url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id={ids_str}&key={api_key}"
         response = requests.get(url)
         data = response.json()
 
-        # Create mapping of video ID to duration
+        # Create mapping of video ID to details
         result = {}
         if 'items' in data:
             for item in data['items']:
                 video_id = item['id']
                 content_details = item['contentDetails']
+                snippet = item.get('snippet', {})
+                
                 result[video_id] = {
-                    'duration': content_details.get('duration', 'PT0S')
+                    'duration': content_details.get('duration', 'PT0S'),
+                    'upload_date': snippet.get('publishedAt')
                 }
 
         return result
@@ -101,14 +115,39 @@ def get_video_details(api_key, video_ids):
         logging.error(f"Error fetching video details: {e}")
         return {}
 
-def get_youtube_video_info(youtube_url):
-    """Extract info from a YouTube URL for a single video."""
+def get_youtube_video_info(youtube_url, api_key=None):
+    """
+    Extract info from a YouTube URL for a single video.
+    If api_key is provided, will fetch video details from the YouTube API.
+    """
     video_id = extract_youtube_id(youtube_url)
     if not video_id:
         raise ValueError("Invalid YouTube URL")
 
-    # For now, we're not fetching additional info from the API for individual videos
-    # We'll just return the basic info
+    # If API key is provided, fetch details from the API
+    if api_key:
+        try:
+            video_details = get_video_details(api_key, [video_id])
+            
+            if video_id in video_details and video_details[video_id].get('upload_date'):
+                # Parse the ISO date format
+                upload_date = datetime.fromisoformat(video_details[video_id]['upload_date'].replace('Z', '+00:00'))
+                
+                # Get the duration
+                duration_str = video_details[video_id].get('duration', 'PT0S')
+                duration_seconds = parse_duration(duration_str)
+                
+                return {
+                    'youtube_id': video_id,
+                    'thumbnail_url': f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+                    'publish_date': upload_date,
+                    'duration_seconds': duration_seconds
+                }
+        except Exception as e:
+            logging.error(f"Error fetching video info from API: {e}")
+            # Fall back to basic info if API call fails
+    
+    # Return basic info if no API key is provided or API call failed
     return {
         'youtube_id': video_id,
         'thumbnail_url': f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",

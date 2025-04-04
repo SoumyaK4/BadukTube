@@ -126,10 +126,14 @@ def edit_lecture(lecture_id):
 
             # Only update YouTube info if URL changed
             if form.youtube_url.data != f"https://youtu.be/{lecture.youtube_id}":
-                video_info = get_youtube_video_info(form.youtube_url.data)
+                # Get the API key from the session if available
+                youtube_api_key = session.get('youtube_api_key', '')
+                video_info = get_youtube_video_info(form.youtube_url.data, api_key=youtube_api_key)
                 lecture.youtube_id = video_info['youtube_id']
                 lecture.thumbnail_url = video_info['thumbnail_url']
                 lecture.publish_date = video_info['publish_date']
+                if 'duration_seconds' in video_info:
+                    lecture.duration_seconds = video_info['duration_seconds']
 
             # Update relationships
             selected_topics = Topic.query.filter(Topic.id.in_(form.topics.data)).all()
@@ -1155,6 +1159,9 @@ def playlist_import():
                 flash('Invalid YouTube playlist URL')
                 return render_template('admin/playlist_import.html', topics=topics, tags=tags, 
                                       ranks=ranks, collections=collections)
+            
+            # Store the API key in the session for future use
+            session['youtube_api_key'] = youtube_api_key
 
             videos, error = fetch_playlist_videos(youtube_api_key, playlist_id)
             if error:
