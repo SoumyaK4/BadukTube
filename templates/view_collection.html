@@ -1,0 +1,279 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-3">{{ collection.name }}</h1>
+    <p class="mb-4">{{ collection.description }}</p>
+    
+    {% if total_duration %}
+    <div class="total-duration mb-4">
+        <p class="text-muted">
+            <i class="fas fa-clock"></i> Total duration: 
+            {% if total_duration.hours > 0 %}{{ total_duration.hours }}h {% endif %}
+            {{ total_duration.minutes }}m {{ total_duration.seconds }}s
+            ({{ lectures|length }} videos)
+        </p>
+    </div>
+    {% endif %}
+    
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <div class="admin-controls mb-4">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Admin mode: You can reorder and remove videos from this collection.
+        </div>
+        <div id="reorder-status" class="alert d-none mb-3"></div>
+        <meta name="csrf-token" content="{{ request.form.get('_csrf_token', '') }}">
+    </div>
+    {% endif %}
+    
+    <div class="row {% if current_user.is_authenticated and current_user.is_admin %}collection-grid{% endif %}">
+        {% for lecture in lectures %}
+        <div class="col-md-4 mb-4 {% if current_user.is_authenticated and current_user.is_admin %}collection-item{% endif %}" 
+             {% if current_user.is_authenticated and current_user.is_admin %}data-id="{{ lecture.id }}"{% endif %}>
+            <div class="card lecture-card h-100" data-video-id="{{ lecture.youtube_id }}">
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                <div class="card-admin-controls d-flex p-2 bg-light border-bottom">
+                    <span class="drag-handle me-2"><i class="fas fa-grip-lines"></i></span>
+                    <span class="position-label">Position: {{ loop.index }}</span>
+                    <div class="ms-auto">
+                        <form method="POST" class="d-inline" action="{{ url_for('view_collection', collection_id=collection.id) }}">
+                            <input type="hidden" name="_csrf_token" value="{{ session.get('_csrf_token', '') }}">
+                            <input type="hidden" name="remove_lecture" value="{{ lecture.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this lecture from the collection?')">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="lecture-thumbnail position-relative">
+                    <img src="{{ lecture.thumbnail_url }}" class="card-img-top" alt="{{ lecture.title }}" loading="lazy">
+                    <i class="fas fa-play-circle play-button"></i>
+                    {% if lecture.duration_seconds %}
+                    <span class="duration-badge">{{ lecture.duration_seconds|default(0)|int//60 }}:{{ '%02d'|format(lecture.duration_seconds|default(0)|int%60) }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <h5 class="lecture-title">{{ lecture.title }}</h5>
+                    <div class="mt-2">
+                        {% if lecture.topics %}
+                        <div class="mb-2">
+                            {% for topic in lecture.topics %}
+                            <span class="badge bg-primary me-1">{{ topic.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if lecture.tags %}
+                        <div class="mb-2">
+                            {% for tag in lecture.tags %}
+                            <span class="badge bg-secondary me-1">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="lecture-meta mt-auto">
+                        {% if lecture.rank %}
+                        <span class="badge bg-info">{{ lecture.rank.name }}</span>
+                        {% endif %}
+                        <span class="ms-2 text-muted">{{ lecture.publish_date.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+{% if current_user.is_authenticated and current_user.is_admin %}
+.dragging {
+    opacity: 0.5;
+    background-color: #f8f9fa;
+}
+.drag-over {
+    border-top: 2px solid #007bff;
+}
+.collection-item {
+    cursor: move;
+}
+.drag-handle {
+    cursor: grab;
+    color: #6c757d;
+}
+.card-admin-controls {
+    font-size: 0.9rem;
+}
+{% endif %}
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/video.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add click event listeners to lecture cards
+        const lectureCards = document.querySelectorAll('.lecture-card');
+        lectureCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Don't trigger video if clicking on admin controls
+                if (e.target.closest('.card-admin-controls') || e.target.closest('form')) {
+                    e.stopPropagation();
+                    return;
+                }
+                
+                const videoId = this.getAttribute('data-video-id');
+                if (videoId) {
+                    openVideoModal(videoId);
+                }
+            });
+        });
+        
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        // Set up drag and drop functionality for the collection items
+        setupDragAndDrop();
+        {% endif %}
+    });
+    
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    // Set up drag and drop functionality
+    function setupDragAndDrop() {
+        const collectionItems = document.querySelectorAll('.collection-item');
+        
+        collectionItems.forEach(item => {
+            // Make item draggable
+            item.setAttribute('draggable', 'true');
+            
+            // Set event listeners for drag operations
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragend', handleDragEnd);
+        });
+    }
+
+    // Store the dragged element
+    let draggedItem = null;
+
+    function handleDragStart(e) {
+        draggedItem = this;
+        // Add visual feedback
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.id);
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault(); // Necessary to allow dropping
+        }
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+        return false;
+    }
+
+    function handleDrop(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation(); // Stops some browsers from redirecting
+        }
+        
+        if (draggedItem !== this) {
+            // Get the current collection ID from the URL
+            const collectionId = window.location.pathname.split('/').pop();
+            
+            // Get all items to determine new order
+            const collectionGrid = document.querySelector('.collection-grid');
+            const items = Array.from(collectionGrid.querySelectorAll('.collection-item'));
+            
+            // Find positions
+            const fromIndex = items.indexOf(draggedItem);
+            const toIndex = items.indexOf(this);
+            
+            // Reorder in the DOM (visual feedback)
+            if (fromIndex < toIndex) {
+                collectionGrid.insertBefore(draggedItem, this.nextSibling);
+            } else {
+                collectionGrid.insertBefore(draggedItem, this);
+            }
+            
+            // Collect lecture IDs in new order
+            const newOrder = Array.from(collectionGrid.querySelectorAll('.collection-item')).map(item => item.dataset.id);
+            
+            // Send to server
+            updateCollectionOrder(collectionId, newOrder);
+        }
+        
+        this.classList.remove('drag-over');
+        return false;
+    }
+
+    function handleDragEnd() {
+        this.classList.remove('dragging');
+        
+        // Remove drag-over class from all items
+        document.querySelectorAll('.collection-item').forEach(item => {
+            item.classList.remove('drag-over');
+        });
+        
+        draggedItem = null;
+    }
+
+    // Function to update entire collection order
+    function updateCollectionOrder(collectionId, lectureIds) {
+        fetch(`/collection/${collectionId}/reorder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                lecture_ids: lectureIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatus('Collection order updated successfully', 'success');
+                // Update the position numbers without reloading
+                updatePositionNumbers();
+            } else {
+                showStatus('Error updating collection order: ' + (data.error || 'Unknown error'), 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showStatus('Error updating collection order. See console for details.', 'danger');
+        });
+    }
+
+    // Update the displayed position numbers
+    function updatePositionNumbers() {
+        const items = document.querySelectorAll('.collection-item');
+        items.forEach((item, index) => {
+            item.querySelector('.position-label').textContent = 'Position: ' + (index + 1);
+        });
+    }
+
+    // Display status message
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('reorder-status');
+        statusDiv.textContent = message;
+        statusDiv.className = `alert alert-${type} mb-3`;
+        statusDiv.style.display = 'block';
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // Get CSRF token from meta tag
+    function getCSRFToken() {
+        const tokenElement = document.querySelector('meta[name="csrf-token"]');
+        return tokenElement ? tokenElement.getAttribute('content') : '';
+    }
+    {% endif %}
+</script>
+{% endblock %}

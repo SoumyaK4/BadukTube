@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Import Data{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>Import Data</h1>
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> Warning: Importing data may create duplicate entries if items with the same names already exist.
+    </div>
+
+    <div class="card my-4">
+        <div class="card-body">
+            <h5 class="card-title">Upload JSON File</h5>
+            <p>Import a full backup of topics, tags, ranks, lectures, and collections (both free and paid).</p>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="import_file" class="form-label">Select JSON file to import</label>
+                    <input type="file" class="form-control" id="import_file" name="import_file" accept=".json" required>
+                    <div class="form-text">
+                        The JSON file should have been exported from this system using the Export feature.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-file-import"></i> Import Data
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card my-3">
+        <div class="card-body">
+            <h5 class="card-title">How it works</h5>
+            <ul>
+                <li>The import process will create new entries for topics, tags, ranks, lectures, and collections that don't exist.</li>
+                <li>Existing entries with the same name won't be duplicated.</li>
+                <li>All relationships between lectures, topics, tags, ranks, and collections will be preserved.</li>
+                <li>Paid collections status will be preserved.</li>
+            </ul>
+        </div>
+    </div>
+
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Admin Panel
+    </a>
+</div>
+{% endblock %}
