@@ -334,7 +334,10 @@ def manage_metadata():
 def export_data():
     try:
         # Get all data
-        lectures = Lecture.query.all()
+        lectures = Lecture.query.options(
+            db.joinedload(Lecture.topics),
+            db.joinedload(Lecture.tags)
+        ).all()
         topics = Topic.query.all()
         tags = Tag.query.all()
         ranks = Rank.query.all()
@@ -374,13 +377,16 @@ def export_data():
         for collection in collections:
             # Get lectures with their positions
             lecture_positions = []
-            for lecture in collection.lectures:
-                position_data = db.session.query(collection_lecture.c.position).filter(
-                    collection_lecture.c.collection_id == collection.id,
-                    collection_lecture.c.lecture_id == lecture.id
-                ).first()
+            collection_lectures = db.session.query(
+                collection_lecture, Lecture
+            ).join(
+                Lecture, Lecture.id == collection_lecture.c.lecture_id
+            ).filter(
+                collection_lecture.c.collection_id == collection.id
+            ).all()
 
-                position = position_data[0] if position_data else 0
+            for cl, lecture in collection_lectures:
+                position = cl.position if hasattr(cl, 'position') else 0
                 lecture_positions.append({
                     'lecture_id': lecture.id,
                     'position': position
@@ -400,6 +406,11 @@ def export_data():
 
         # Add lectures
         for lecture in lectures:
+            collection_ids = [c.id for c in db.session.query(Collection.id).join(
+                collection_lecture, 
+                Collection.id == collection_lecture.c.collection_id
+            ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
+            
             lecture_data = {
                 'id': lecture.id,
                 'title': lecture.title,
@@ -410,16 +421,14 @@ def export_data():
                 'rank_id': lecture.rank_id,
                 'topic_ids': [topic.id for topic in lecture.topics],
                 'tag_ids': [tag.id for tag in lecture.tags],
-                'collection_ids': [c.id for c in Collection.query.join(
-                    collection_lecture, 
-                    Collection.id == collection_lecture.c.collection_id
-                ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
+                'collection_ids': collection_ids
             }
             export_data['lectures'].append(lecture_data)
 
         # Return JSON file for download
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         response = jsonify(export_data)
-        response.headers.set('Content-Disposition', 'attachment', filename='baduk_lectures_export.json')
+        response.headers.set('Content-Disposition', f'attachment; filename=baduk_lectures_export_{timestamp}.json')
         return response
     except Exception as e:
         logging.error(f"Error exporting data: {str(e)}")
@@ -441,164 +450,187 @@ def import_data():
                 return redirect(request.url)
 
             if file:
-                import_data = json.loads(file.read().decode('utf-8'))
-
+                # Use ijson for streaming JSON parsing
+                import ijson
+                import tempfile
+                
+                # Save uploaded file to a temporary file first
+                temp_file = tempfile.NamedTemporaryFile(delete=False)
+                file.save(temp_file.name)
+                temp_file.close()
+                
                 # Create mappings to store old ID to new ID relationships
                 topic_id_map = {}
                 tag_id_map = {}
                 rank_id_map = {}
                 collection_id_map = {}
                 lecture_id_map = {}
-
-                # Process topics
-                if 'topics' in import_data:
-                    for topic_data in import_data['topics']:
-                        # Check if topic already exists
-                        existing_topic = Topic.query.filter_by(name=topic_data['name']).first()
-                        if not existing_topic:
-                            # Always create with a new ID
-                            new_topic = Topic(name=topic_data['name'])
-                            db.session.add(new_topic)
-                            db.session.flush()
-                            topic_id_map[topic_data['id']] = new_topic.id
-                        else:
-                            topic_id_map[topic_data['id']] = existing_topic.id
-
-                # Process tags
-                if 'tags' in import_data:
-                    for tag_data in import_data['tags']:
-                        # Check if tag already exists
-                        existing_tag = Tag.query.filter_by(name=tag_data['name']).first()
-                        if not existing_tag:
-                            # Always create with a new ID
-                            new_tag = Tag(name=tag_data['name'])
-                            db.session.add(new_tag)
-                            db.session.flush()
-                            tag_id_map[tag_data['id']] = new_tag.id
-                        else:
-                            tag_id_map[tag_data['id']] = existing_tag.id
-
-                # Process ranks
-                if 'ranks' in import_data:
-                    for rank_data in import_data['ranks']:
-                        # Check if rank already exists
-                        existing_rank = Rank.query.filter_by(name=rank_data['name']).first()
-                        if not existing_rank:
-                            # Always create with a new ID
-                            new_rank = Rank(name=rank_data['name'])
-                            db.session.add(new_rank)
-                            db.session.flush()
-                            rank_id_map[rank_data['id']] = new_rank.id
-                        else:
-                            rank_id_map[rank_data['id']] = existing_rank.id
-
-                # Process collections (basic info first, we'll assign lectures later)
-                if 'collections' in import_data:
-                    for collection_data in import_data['collections']:
-                        # Check if collection already exists
-                        existing_collection = Collection.query.filter_by(name=collection_data['name']).first()
-                        if not existing_collection:
-                            # Always create with a new ID
-                            new_collection = Collection(
-                                name=collection_data['name'],
-                                description=collection_data.get('description', ''),
-                                is_paid=collection_data.get('is_paid', False),
-                                created_at=datetime.fromisoformat(collection_data['created_at']) if collection_data.get('created_at') else datetime.utcnow()
-                            )
-                            db.session.add(new_collection)
-                            db.session.flush()
-                            collection_id_map[collection_data['id']] = new_collection.id
-                        else:
-                            collection_id_map[collection_data['id']] = existing_collection.id
-
-                # Process lectures
-                if 'lectures' in import_data:
-                    for lecture_data in import_data['lectures']:
-                        # Check if lecture already exists by YouTube ID
-                        existing_lecture = Lecture.query.filter_by(youtube_id=lecture_data['youtube_id']).first()
-                        if not existing_lecture:
-                            # Always create with a new ID
-                            new_lecture = Lecture(
-                                title=lecture_data['title'],
-                                youtube_id=lecture_data['youtube_id'],
-                                thumbnail_url=lecture_data['thumbnail_url'],
-                                publish_date=datetime.fromisoformat(lecture_data['publish_date']),
-                                duration_seconds=lecture_data.get('duration_seconds',0)
-                            )
-
-                            # Set rank
-                            if lecture_data.get('rank_id') and lecture_data['rank_id'] in rank_id_map:
-                                new_lecture.rank_id = rank_id_map[lecture_data['rank_id']]
-                            
-                            db.session.add(new_lecture)
-                            db.session.flush()
-                            
-                            # Add topics
-                            if 'topic_ids' in lecture_data:
-                                for old_topic_id in lecture_data['topic_ids']:
-                                    if old_topic_id in topic_id_map:
-                                        topic = Topic.query.get(topic_id_map[old_topic_id])
-                                        if topic:
-                                            new_lecture.topics.append(topic)
-
-                            # Add tags
-                            if 'tag_ids' in lecture_data:
-                                for old_tag_id in lecture_data['tag_ids']:
-                                    if old_tag_id in tag_id_map:
-                                        tag = Tag.query.get(tag_id_map[old_tag_id])
-                                        if tag:
-                                            new_lecture.tags.append(tag)
-                            
-                            lecture_id_map[lecture_data['id']] = new_lecture.id
-                        else:
-                            lecture_id_map[lecture_data['id']] = existing_lecture.id
-
-                # Now associate lectures with collections
-                if 'collections' in import_data:
-                    for collection_data in import_data['collections']:
-                        if collection_data['id'] in collection_id_map:
-                            collection = Collection.query.get(collection_id_map[collection_data['id']])
-                            if collection:
-                                # Handle both new and old format
-                                if 'lectures' in collection_data:
-                                    # New format with position data
-                                    for lecture_data in collection_data['lectures']:
-                                        old_lecture_id = lecture_data['lecture_id']
-                                        position = lecture_data.get('position', 0)
-
-                                        if old_lecture_id in lecture_id_map:
-                                            lecture = Lecture.query.get(lecture_id_map[old_lecture_id])
-                                            if lecture:
-                                                if lecture not in collection.lectures:
-                                                    collection.lectures.append(lecture)
-
-                                                # Set position
-                                                db.session.execute(
-                                                    collection_lecture.update().
-                                                    where(collection_lecture.c.collection_id == collection.id).
-                                                    where(collection_lecture.c.lecture_id == lecture.id).
-                                                    values(position=position)
-                                                )
-
-                                elif 'lecture_ids' in collection_data:
-                                    # Old format without position
-                                    for position, old_lecture_id in enumerate(collection_data['lecture_ids']):
-                                        if old_lecture_id in lecture_id_map:
-                                            lecture = Lecture.query.get(lecture_id_map[old_lecture_id])
-                                            if lecture:
-                                                if lecture not in collection.lectures:
-                                                    collection.lectures.append(lecture)
-
-                                                # Set position
-                                                db.session.execute(
-                                                    collection_lecture.update().
-                                                    where(collection_lecture.c.collection_id == collection.id).
-                                                    where(collection_lecture.c.lecture_id == lecture.id).
-                                                    values(position=position)
-                                                )
-
+                
+                # Statistics for feedback
+                stats = {
+                    "topics": {"added": 0, "existing": 0},
+                    "tags": {"added": 0, "existing": 0},
+                    "ranks": {"added": 0, "existing": 0},
+                    "lectures": {"added": 0, "existing": 0},
+                    "collections": {"added": 0, "existing": 0}
+                }
+                
+                # Process in stages with separate transactions for better memory usage and error recovery
+                
+                # Step 1: Process topics
+                with open(temp_file.name, 'rb') as json_file:
+                    topics = ijson.items(json_file, 'topics.item')
+                    for topic_data in topics:
+                        try:
+                            # Check if topic already exists
+                            existing_topic = Topic.query.filter_by(name=topic_data['name']).first()
+                            if not existing_topic:
+                                # Always create with a new ID
+                                new_topic = Topic(name=topic_data['name'])
+                                db.session.add(new_topic)
+                                db.session.flush()
+                                topic_id_map[topic_data['id']] = new_topic.id
+                                stats["topics"]["added"] += 1
+                            else:
+                                topic_id_map[topic_data['id']] = existing_topic.id
+                                stats["topics"]["existing"] += 1
+                        except Exception as e:
+                            db.session.rollback()
+                            logging.error(f"Error processing topic {topic_data.get('name', 'unknown')}: {str(e)}")
+                            # Continue with next topic
+                
+                # Commit topics
                 db.session.commit()
-                flash('Data imported successfully')
+                
+                # Step 2: Process tags
+                with open(temp_file.name, 'rb') as json_file:
+                    tags = ijson.items(json_file, 'tags.item')
+                    for tag_data in tags:
+                        try:
+                            # Check if tag already exists
+                            existing_tag = Tag.query.filter_by(name=tag_data['name']).first()
+                            if not existing_tag:
+                                # Always create with a new ID
+                                new_tag = Tag(name=tag_data['name'])
+                                db.session.add(new_tag)
+                                db.session.flush()
+                                tag_id_map[tag_data['id']] = new_tag.id
+                                stats["tags"]["added"] += 1
+                            else:
+                                tag_id_map[tag_data['id']] = existing_tag.id
+                                stats["tags"]["existing"] += 1
+                        except Exception as e:
+                            db.session.rollback()
+                            logging.error(f"Error processing tag {tag_data.get('name', 'unknown')}: {str(e)}")
+                            # Continue with next tag
+                
+                # Commit tags
+                db.session.commit()
+                
+                # Step 3: Process ranks
+                with open(temp_file.name, 'rb') as json_file:
+                    ranks = ijson.items(json_file, 'ranks.item')
+                    for rank_data in ranks:
+                        try:
+                            # Check if rank already exists
+                            existing_rank = Rank.query.filter_by(name=rank_data['name']).first()
+                            if not existing_rank:
+                                # Always create with a new ID
+                                new_rank = Rank(name=rank_data['name'])
+                                db.session.add(new_rank)
+                                db.session.flush()
+                                rank_id_map[rank_data['id']] = new_rank.id
+                                stats["ranks"]["added"] += 1
+                            else:
+                                rank_id_map[rank_data['id']] = existing_rank.id
+                                stats["ranks"]["existing"] += 1
+                        except Exception as e:
+                            db.session.rollback()
+                            logging.error(f"Error processing rank {rank_data.get('name', 'unknown')}: {str(e)}")
+                            # Continue with next rank
+                
+                # Commit ranks
+                db.session.commit()
+                
+                # Step 4: Process collections (basic info first, we'll assign lectures later)
+                with open(temp_file.name, 'rb') as json_file:
+                    collections = ijson.items(json_file, 'collections.item')
+                    for collection_data in collections:
+                        try:
+                            # Check if collection already exists
+                            existing_collection = Collection.query.filter_by(name=collection_data['name']).first()
+                            if not existing_collection:
+                                # Always create with a new ID
+                                new_collection = Collection(
+                                    name=collection_data['name'],
+                                    description=collection_data.get('description', ''),
+                                    is_paid=collection_data.get('is_paid', False),
+                                    created_at=datetime.fromisoformat(collection_data['created_at']) if collection_data.get('created_at') else datetime.utcnow()
+                                )
+                                db.session.add(new_collection)
+                                db.session.flush()
+                                collection_id_map[collection_data['id']] = new_collection.id
+                                stats["collections"]["added"] += 1
+                            else:
+                                collection_id_map[collection_data['id']] = existing_collection.id
+                                stats["collections"]["existing"] += 1
+                        except Exception as e:
+                            db.session.rollback()
+                            logging.error(f"Error processing collection {collection_data.get('name', 'unknown')}: {str(e)}")
+                            # Continue with next collection
+                
+                # Commit collections
+                db.session.commit()
+                
+                # Step 5: Process lectures in smaller batches
+                batch_size = 50
+                lecture_batch = []
+                
+                with open(temp_file.name, 'rb') as json_file:
+                    lectures = ijson.items(json_file, 'lectures.item')
+                    for lecture_data in lectures:
+                        lecture_batch.append(lecture_data)
+                        
+                        # Process batch when it reaches the specified size
+                        if len(lecture_batch) >= batch_size:
+                            process_lecture_batch(lecture_batch, lecture_id_map, rank_id_map, topic_id_map, tag_id_map, stats)
+                            lecture_batch = []  # Reset batch
+                    
+                    # Process any remaining lectures
+                    if lecture_batch:
+                        process_lecture_batch(lecture_batch, lecture_id_map, rank_id_map, topic_id_map, tag_id_map, stats)
+                
+                # Step 6: Associate lectures with collections in batches
+                batch_size = 50
+                collection_batch = []
+                
+                with open(temp_file.name, 'rb') as json_file:
+                    collections = ijson.items(json_file, 'collections.item')
+                    for collection_data in collections:
+                        collection_batch.append(collection_data)
+                        
+                        # Process batch when it reaches the specified size
+                        if len(collection_batch) >= batch_size:
+                            process_collection_lecture_batch(collection_batch, collection_id_map, lecture_id_map)
+                            collection_batch = []  # Reset batch
+                    
+                    # Process any remaining collections
+                    if collection_batch:
+                        process_collection_lecture_batch(collection_batch, collection_id_map, lecture_id_map)
+                
+                # Clean up temporary file
+                import os
+                os.unlink(temp_file.name)
+                
+                # Generate success message with statistics
+                success_message = f"Data imported successfully: "
+                success_message += f"{stats['topics']['added']} topics added ({stats['topics']['existing']} existing), "
+                success_message += f"{stats['tags']['added']} tags added ({stats['tags']['existing']} existing), "
+                success_message += f"{stats['ranks']['added']} ranks added ({stats['ranks']['existing']} existing), "
+                success_message += f"{stats['lectures']['added']} lectures added ({stats['lectures']['existing']} existing), "
+                success_message += f"{stats['collections']['added']} collections added ({stats['collections']['existing']} existing)"
+                
+                flash(success_message)
                 return redirect(url_for('admin_panel'))
 
         except Exception as e:
@@ -608,6 +640,120 @@ def import_data():
             return redirect(request.url)
 
     return render_template('admin/import.html')
+
+# Helper function for processing lecture batches
+def process_lecture_batch(lecture_batch, lecture_id_map, rank_id_map, topic_id_map, tag_id_map, stats):
+    """Process a batch of lectures with database flush at the end"""
+    try:
+        for lecture_data in lecture_batch:
+            try:
+                # Check if lecture already exists by YouTube ID
+                existing_lecture = Lecture.query.filter_by(youtube_id=lecture_data['youtube_id']).first()
+                if not existing_lecture:
+                    # Always create with a new ID
+                    new_lecture = Lecture(
+                        title=lecture_data['title'],
+                        youtube_id=lecture_data['youtube_id'],
+                        thumbnail_url=lecture_data['thumbnail_url'],
+                        publish_date=datetime.fromisoformat(lecture_data['publish_date']),
+                        duration_seconds=lecture_data.get('duration_seconds', 0)
+                    )
+
+                    # Set rank
+                    if lecture_data.get('rank_id') and lecture_data['rank_id'] in rank_id_map:
+                        new_lecture.rank_id = rank_id_map[lecture_data['rank_id']]
+                    
+                    db.session.add(new_lecture)
+                    db.session.flush()
+                    
+                    # Add topics
+                    if 'topic_ids' in lecture_data:
+                        for old_topic_id in lecture_data['topic_ids']:
+                            if old_topic_id in topic_id_map:
+                                topic = Topic.query.get(topic_id_map[old_topic_id])
+                                if topic:
+                                    new_lecture.topics.append(topic)
+
+                    # Add tags
+                    if 'tag_ids' in lecture_data:
+                        for old_tag_id in lecture_data['tag_ids']:
+                            if old_tag_id in tag_id_map:
+                                tag = Tag.query.get(tag_id_map[old_tag_id])
+                                if tag:
+                                    new_lecture.tags.append(tag)
+                    
+                    lecture_id_map[lecture_data['id']] = new_lecture.id
+                    stats["lectures"]["added"] += 1
+                else:
+                    lecture_id_map[lecture_data['id']] = existing_lecture.id
+                    stats["lectures"]["existing"] += 1
+            except Exception as e:
+                # Log the error but continue processing other lectures
+                logging.error(f"Error processing lecture {lecture_data.get('title', 'unknown')}: {str(e)}")
+                continue
+        
+        # Commit after processing the batch
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error processing lecture batch: {str(e)}")
+
+# Helper function for processing collection-lecture associations
+def process_collection_lecture_batch(collection_batch, collection_id_map, lecture_id_map):
+    """Process a batch of collection-lecture associations"""
+    try:
+        for collection_data in collection_batch:
+            try:
+                if collection_data['id'] in collection_id_map:
+                    collection = Collection.query.get(collection_id_map[collection_data['id']])
+                    if collection:
+                        # Handle both new and old format
+                        if 'lectures' in collection_data:
+                            # New format with position data
+                            for lecture_data in collection_data['lectures']:
+                                old_lecture_id = lecture_data['lecture_id']
+                                position = lecture_data.get('position', 0)
+
+                                if old_lecture_id in lecture_id_map:
+                                    lecture = Lecture.query.get(lecture_id_map[old_lecture_id])
+                                    if lecture:
+                                        if lecture not in collection.lectures:
+                                            collection.lectures.append(lecture)
+
+                                        # Set position
+                                        db.session.execute(
+                                            collection_lecture.update().
+                                            where(collection_lecture.c.collection_id == collection.id).
+                                            where(collection_lecture.c.lecture_id == lecture.id).
+                                            values(position=position)
+                                        )
+
+                        elif 'lecture_ids' in collection_data:
+                            # Old format without position
+                            for position, old_lecture_id in enumerate(collection_data['lecture_ids']):
+                                if old_lecture_id in lecture_id_map:
+                                    lecture = Lecture.query.get(lecture_id_map[old_lecture_id])
+                                    if lecture:
+                                        if lecture not in collection.lectures:
+                                            collection.lectures.append(lecture)
+
+                                        # Set position
+                                        db.session.execute(
+                                            collection_lecture.update().
+                                            where(collection_lecture.c.collection_id == collection.id).
+                                            where(collection_lecture.c.lecture_id == lecture.id).
+                                            values(position=position)
+                                        )
+            except Exception as e:
+                # Log the error but continue processing other collections
+                logging.error(f"Error processing collection {collection_data.get('name', 'unknown')}: {str(e)}")
+                continue
+        
+        # Commit after processing the batch
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error processing collection-lecture batch: {str(e)}")
 
 @app.route('/admin/reset', methods=['POST'])
 @login_required
