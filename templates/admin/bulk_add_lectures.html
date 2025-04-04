@@ -1,0 +1,237 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Add Lectures to Collection{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Add Lectures to Collection: {{ collection.name }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="bulk-add-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Filter Lectures</label>
+                            <div class="input-group">
+                                <input type="text" id="lecture-search" class="form-control" placeholder="Search by title...">
+                                <button type="button" class="btn btn-outline-secondary" id="clear-search">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Topic</label>
+                            <select class="form-select" id="topic-filter">
+                                <option value="">-- All Topics --</option>
+                                {% for topic in topics %}
+                                <option value="{{ topic.id }}">{{ topic.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Tag</label>
+                            <select class="form-select" id="tag-filter">
+                                <option value="">-- All Tags --</option>
+                                {% for tag in tags %}
+                                <option value="{{ tag.id }}">{{ tag.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Rank</label>
+                            <select class="form-select" id="rank-filter">
+                                <option value="">-- All Ranks --</option>
+                                {% for rank in ranks %}
+                                <option value="{{ rank.id }}">{{ rank.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label">Select Lectures to Add</label>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">
+                                        <i class="fas fa-check-square"></i> Select All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">
+                                        <i class="fas fa-square"></i> Deselect All
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive mt-2" style="max-height: 500px; overflow-y: auto;">
+                                <table class="table table-striped table-hover">
+                                    <thead class="sticky-top bg-light">
+                                        <tr>
+                                            <th style="width: 50px;">Add</th>
+                                            <th>Title</th>
+                                            <th>Published</th>
+                                            <th>Topics</th>
+                                            <th>Tags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lecture-table-body">
+                                        {% for lecture in available_lectures %}
+                                        <tr class="lecture-row" 
+                                            data-topic-ids="{{ lecture.topics|map(attribute='id')|join(',') }}"
+                                            data-tag-ids="{{ lecture.tags|map(attribute='id')|join(',') }}"
+                                            data-rank-id="{{ lecture.rank_id or '' }}">
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input lecture-checkbox" type="checkbox" 
+                                                           name="lecture_ids" value="{{ lecture.id }}" 
+                                                           id="lecture-{{ lecture.id }}">
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <label for="lecture-{{ lecture.id }}" class="form-check-label lecture-title">
+                                                    {{ lecture.title }}
+                                                </label>
+                                            </td>
+                                            <td>{{ lecture.publish_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                {% for topic in lecture.topics %}
+                                                <span class="badge bg-primary">{{ topic.name }}</span>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                {% for tag in lecture.tags %}
+                                                <span class="badge bg-secondary">{{ tag.name }}</span>
+                                                {% endfor %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <span class="badge bg-primary" id="selected-count">0</span> lectures selected
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('edit_collection', collection_id=collection.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Collection
+                            </a>
+                            <button type="submit" class="btn btn-success" id="add-selected">
+                                <i class="fas fa-plus-circle"></i> Add Selected Lectures
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const lectureSearch = document.getElementById('lecture-search');
+    const topicFilter = document.getElementById('topic-filter');
+    const tagFilter = document.getElementById('tag-filter');
+    const rankFilter = document.getElementById('rank-filter');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const selectAllBtn = document.getElementById('select-all');
+    const deselectAllBtn = document.getElementById('deselect-all');
+    const lectureRows = document.querySelectorAll('.lecture-row');
+    const checkboxes = document.querySelectorAll('.lecture-checkbox');
+    const selectedCount = document.getElementById('selected-count');
+    
+    // Function to filter lectures
+    function filterLectures() {
+        const searchText = lectureSearch.value.toLowerCase();
+        const selectedTopic = topicFilter.value;
+        const selectedTag = tagFilter.value;
+        const selectedRank = rankFilter.value;
+        
+        let visibleCount = 0;
+        
+        lectureRows.forEach(row => {
+            const title = row.querySelector('.lecture-title').textContent.toLowerCase();
+            const topicIds = row.dataset.topicIds.split(',');
+            const tagIds = row.dataset.tagIds.split(',');
+            const rankId = row.dataset.rankId;
+            
+            const matchesSearch = searchText === '' || title.includes(searchText);
+            const matchesTopic = selectedTopic === '' || (topicIds.includes(selectedTopic) && topicIds[0] !== '');
+            const matchesTag = selectedTag === '' || (tagIds.includes(selectedTag) && tagIds[0] !== '');
+            const matchesRank = selectedRank === '' || rankId === selectedRank;
+            
+            const visible = matchesSearch && matchesTopic && matchesTag && matchesRank;
+            row.style.display = visible ? '' : 'none';
+            
+            if (visible) visibleCount++;
+        });
+    }
+    
+    // Function to update selected count
+    function updateSelectedCount() {
+        let count = 0;
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) count++;
+        });
+        selectedCount.textContent = count;
+    }
+    
+    // Add event listeners
+    lectureSearch.addEventListener('input', filterLectures);
+    topicFilter.addEventListener('change', filterLectures);
+    tagFilter.addEventListener('change', filterLectures);
+    rankFilter.addEventListener('change', filterLectures);
+    
+    clearSearchBtn.addEventListener('click', function() {
+        lectureSearch.value = '';
+        topicFilter.value = '';
+        tagFilter.value = '';
+        rankFilter.value = '';
+        filterLectures();
+    });
+    
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            if (row.style.display !== 'none') {
+                checkbox.checked = true;
+            }
+        });
+        updateSelectedCount();
+    });
+    
+    deselectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedCount();
+    });
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Disable form submission if no lectures selected
+    document.getElementById('bulk-add-form').addEventListener('submit', function(e) {
+        let hasSelected = false;
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) hasSelected = true;
+        });
+        
+        if (!hasSelected) {
+            e.preventDefault();
+            alert('Please select at least one lecture to add to the collection.');
+        }
+    });
+    
+    // Initialize
+    updateSelectedCount();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /search
+Allow: /collections
+Allow: /about
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+
+# Sitemap
+Sitemap: https://baduktube.soumyak4.in/sitemap.xml

@@ -96,16 +96,24 @@
                         </table>
                     </div>
                     <div class="mt-3">
-                        <p class="text-muted">
-                            <i class="fas fa-info-circle"></i> 
-                            To manage lectures in this collection, please use the "Edit Lecture" pages or the Collection View page.
-                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <p class="text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                To manage lectures in this collection, please use the "Edit Lecture" pages or the Collection View page.
+                            </p>
+                            <a href="{{ url_for('bulk_add_lectures', collection_id=collection.id) }}" class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> Add Videos in Bulk
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
             {% else %}
             <div class="alert alert-info mt-4">
                 <i class="fas fa-info-circle"></i> This collection doesn't have any lectures yet.
+                <a href="{{ url_for('bulk_add_lectures', collection_id=collection.id) }}" class="btn btn-success btn-sm ms-3">
+                    <i class="fas fa-plus-circle"></i> Add Videos
+                </a>
             </div>
             {% endif %}
         </div>

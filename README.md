@@ -11,7 +11,12 @@ A comprehensive web application built with Flask for organizing and delivering e
 - **Admin Panel**: Complete content management system for administrators
 - **User Authentication**: Secure login system with role-based access control
 - **Responsive Design**: Mobile-friendly interface with dark mode support
-- **PWA Support**: Progressive Web App capabilities for installation on devices
+- **PWA Support**: Enhanced Progressive Web App capabilities:
+  - App installation on mobile and desktop devices
+  - Offline access to recently viewed content
+  - Custom app icons and splash screens
+  - Shortcuts for quick access to search and collections
+- **SEO Optimization**: Proper sitemap.xml and robots.txt configuration
 
 ## Technical Stack
 
@@ -96,7 +101,15 @@ The application requires the following environment variables:
 - **Collection Management**: Create and manage collections
 - **Metadata Management**: Manage topics, tags, and ranks
 - **Playlist Import**: Import multiple videos from YouTube playlists
-- **Data Management**: Export and import data
+- **Bulk Operations**: 
+  - Add multiple existing lectures to collections at once
+  - Filter lectures by topic, tag, rank, or keyword before bulk operations
+  - Reorder lectures within collections using drag-and-drop
+- **Data Management**: 
+  - Export and import database tables (topics, tags, ranks, lectures, collections)
+  - Options for merging or replacing data on import
+  - Automatic data backup before destructive operations
+- **Video Metadata**: Update video publish dates and durations from YouTube API
 
 ## Development Notes
 
@@ -111,6 +124,9 @@ The application requires the following environment variables:
 - YouTube video information is fetched via the YouTube Data API
 - Video IDs are extracted from various URL formats
 - Playlists can be imported in bulk
+- Efficient batching of API requests (50 videos per batch) to stay within API limits
+- Metadata updates for videos to ensure accurate publish dates and durations
+- Utility script (`update_video_dates.py`) to correct dates for existing videos
 
 ### Authentication System
 
@@ -123,6 +139,21 @@ The application requires the following environment variables:
 - CSS is organized in the `/static/css` directory
 - JavaScript functionality is in `/static/js`
 - The site supports dark mode via `/static/js/theme.js`
+
+### Progressive Web App
+
+- Service worker for caching and offline capabilities
+- Manifest configuration for installation on devices
+- App icons in various sizes for different platforms
+- Splash screens for iOS and Android devices
+- App shortcuts for quick access to key features
+- Desktop installation support
+
+### SEO Optimization
+
+- Properly formatted sitemap.xml for search engine indexing
+- Robots.txt configuration for crawler guidance
+- Structured metadata for better search engine visibility
 
 ## Deployment
 

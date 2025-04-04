@@ -49,11 +49,11 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ url_for('export_data') }}" class="btn btn-success" download="baduk_lectures_export.json">
-                            <i class="fas fa-file-export me-2"></i> Export All Data
+                        <a href="{{ url_for('db_export_page') }}" class="btn btn-success">
+                            <i class="fas fa-file-export me-2"></i> Export Database
                         </a>
-                        <a href="{{ url_for('import_data') }}" class="btn btn-warning">
-                            <i class="fas fa-file-import me-2"></i> Import Data
+                        <a href="{{ url_for('db_import_page') }}" class="btn btn-warning">
+                            <i class="fas fa-file-import me-2"></i> Import Database
                         </a>
                         <button id="resetButton" class="btn btn-danger">
                             <i class="fas fa-trash-alt me-2"></i> Reset All Data

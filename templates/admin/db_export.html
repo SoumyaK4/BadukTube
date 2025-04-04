@@ -1,0 +1,137 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Export Database{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Export Database</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        <i class="fas fa-info-circle"></i> 
+                        Choose what data you want to export. You can export individual tables or the entire database.
+                    </p>
+
+                    <div class="mb-4">
+                        <h5>1. Export Complete Database</h5>
+                        <p>Export all data from all tables including relationships.</p>
+                        <a href="{{ url_for('export_data') }}" class="btn btn-success" download="baduk_lectures_export.json">
+                            <i class="fas fa-file-export me-2"></i> Export All Data
+                        </a>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h5>2. Export Individual Tables</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Table</th>
+                                        <th>Description</th>
+                                        <th>Count</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Lectures</td>
+                                        <td>Video lectures with metadata</td>
+                                        <td>{{ counts.lectures }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='lectures') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Topics</td>
+                                        <td>Lecture topics/categories</td>
+                                        <td>{{ counts.topics }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='topics') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tags</td>
+                                        <td>Lecture tags</td>
+                                        <td>{{ counts.tags }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='tags') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ranks</td>
+                                        <td>Player rank categories</td>
+                                        <td>{{ counts.ranks }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='ranks') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Collections</td>
+                                        <td>Video collections/playlists</td>
+                                        <td>{{ counts.collections }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='collections') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lecture-Topic</td>
+                                        <td>Relationships between lectures and topics</td>
+                                        <td>{{ counts.lecture_topics }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='lecture_topics') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lecture-Tag</td>
+                                        <td>Relationships between lectures and tags</td>
+                                        <td>{{ counts.lecture_tags }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='lecture_tags') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Collection-Lecture</td>
+                                        <td>Relationships between collections and lectures</td>
+                                        <td>{{ counts.collection_lectures }}</td>
+                                        <td>
+                                            <a href="{{ url_for('export_table', table_name='collection_lectures') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

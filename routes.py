@@ -6,7 +6,7 @@ import uuid
 import logging
 import json
 from datetime import datetime
-from models import User, Lecture, Topic, Tag, Rank, Collection, collection_lecture
+from models import User, Lecture, Topic, Tag, Rank, Collection, collection_lecture, lecture_topic, lecture_tag
 from forms import LoginForm, LectureForm, MetadataForm, CollectionForm
 from utils import get_youtube_video_info
 from db_utils import (
@@ -613,6 +613,391 @@ def import_data():
 
     return render_template('admin/import.html')
 
+@app.route('/admin/db-export', methods=['GET'])
+@login_required
+def db_export_page():
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+        
+    # Get counts of items in each table
+    counts = {
+        'lectures': Lecture.query.count(),
+        'topics': Topic.query.count(),
+        'tags': Tag.query.count(),
+        'ranks': Rank.query.count(),
+        'collections': Collection.query.count(),
+        'lecture_topics': db.session.query(lecture_topic).count(),
+        'lecture_tags': db.session.query(lecture_tag).count(),
+        'collection_lectures': db.session.query(collection_lecture).count()
+    }
+    
+    return render_template('admin/db_export.html', counts=counts)
+
+@app.route('/admin/export-table/<string:table_name>', methods=['GET'])
+@login_required
+def export_table(table_name):
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+        
+    try:
+        export_data = {}
+        
+        if table_name == 'lectures':
+            lectures = Lecture.query.all()
+            export_data['lectures'] = []
+            
+            for lecture in lectures:
+                lecture_data = {
+                    'id': lecture.id,
+                    'title': lecture.title,
+                    'youtube_id': lecture.youtube_id,
+                    'thumbnail_url': lecture.thumbnail_url,
+                    'publish_date': lecture.publish_date.isoformat(),
+                    'duration_seconds': lecture.duration_seconds,
+                    'rank_id': lecture.rank_id
+                }
+                export_data['lectures'].append(lecture_data)
+                
+        elif table_name == 'topics':
+            topics = Topic.query.all()
+            export_data['topics'] = []
+            
+            for topic in topics:
+                export_data['topics'].append({
+                    'id': topic.id,
+                    'name': topic.name
+                })
+                
+        elif table_name == 'tags':
+            tags = Tag.query.all()
+            export_data['tags'] = []
+            
+            for tag in tags:
+                export_data['tags'].append({
+                    'id': tag.id,
+                    'name': tag.name
+                })
+                
+        elif table_name == 'ranks':
+            ranks = Rank.query.all()
+            export_data['ranks'] = []
+            
+            for rank in ranks:
+                export_data['ranks'].append({
+                    'id': rank.id,
+                    'name': rank.name
+                })
+                
+        elif table_name == 'collections':
+            collections = Collection.query.all()
+            export_data['collections'] = []
+            
+            for collection in collections:
+                export_data['collections'].append({
+                    'id': collection.id,
+                    'name': collection.name,
+                    'description': collection.description,
+                    'is_paid': collection.is_paid,
+                    'created_at': collection.created_at.isoformat() if collection.created_at else None
+                })
+                
+        elif table_name == 'lecture_topics':
+            lecture_topics = db.session.query(lecture_topic).all()
+            export_data['lecture_topics'] = []
+            
+            for lt in lecture_topics:
+                export_data['lecture_topics'].append({
+                    'lecture_id': lt.lecture_id,
+                    'topic_id': lt.topic_id
+                })
+                
+        elif table_name == 'lecture_tags':
+            lecture_tags = db.session.query(lecture_tag).all()
+            export_data['lecture_tags'] = []
+            
+            for lt in lecture_tags:
+                export_data['lecture_tags'].append({
+                    'lecture_id': lt.lecture_id,
+                    'tag_id': lt.tag_id
+                })
+                
+        elif table_name == 'collection_lectures':
+            collection_lectures = db.session.query(collection_lecture).all()
+            export_data['collection_lectures'] = []
+            
+            for cl in collection_lectures:
+                export_data['collection_lectures'].append({
+                    'collection_id': cl.collection_id,
+                    'lecture_id': cl.lecture_id,
+                    'position': cl.position
+                })
+        else:
+            flash(f'Unknown table name: {table_name}')
+            return redirect(url_for('db_export_page'))
+        
+        # Return JSON file for download
+        response = jsonify(export_data)
+        response.headers.set('Content-Disposition', 'attachment', filename=f'baduk_{table_name}_export.json')
+        return response
+        
+    except Exception as e:
+        logging.error(f"Error exporting table {table_name}: {str(e)}")
+        flash(f'Error exporting table: {str(e)}')
+        return redirect(url_for('db_export_page'))
+
+@app.route('/admin/db-import', methods=['GET'])
+@login_required
+def db_import_page():
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+        
+    return render_template('admin/db_import.html')
+
+@app.route('/admin/import-table', methods=['POST'])
+@login_required
+def import_table():
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+        
+    try:
+        if 'table_file' not in request.files:
+            flash('No file part')
+            return redirect(url_for('db_import_page'))
+
+        file = request.files['table_file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(url_for('db_import_page'))
+
+        table_name = request.form.get('table_name')
+        if not table_name:
+            flash('No table name selected')
+            return redirect(url_for('db_import_page'))
+            
+        replace_table = request.form.get('replace_table') == '1'
+
+        if file:
+            import_data = json.loads(file.read().decode('utf-8'))
+            
+            # Validate that the file contains the expected table
+            if table_name not in import_data and f"{table_name}" not in import_data:
+                flash(f'The selected file does not contain {table_name} data')
+                return redirect(url_for('db_import_page'))
+                
+            # If replacing, clear the table first
+            if replace_table:
+                if table_name == 'lectures':
+                    db.session.execute(db.text("DELETE FROM lecture_topic"))
+                    db.session.execute(db.text("DELETE FROM lecture_tag"))
+                    db.session.execute(db.text("DELETE FROM collection_lecture"))
+                    db.session.execute(db.text("DELETE FROM lecture"))
+                elif table_name == 'topics':
+                    db.session.execute(db.text("DELETE FROM lecture_topic"))
+                    db.session.execute(db.text("DELETE FROM topic"))
+                elif table_name == 'tags':
+                    db.session.execute(db.text("DELETE FROM lecture_tag"))
+                    db.session.execute(db.text("DELETE FROM tag"))
+                elif table_name == 'ranks':
+                    db.session.execute(db.text("UPDATE lecture SET rank_id = NULL"))
+                    db.session.execute(db.text("DELETE FROM rank"))
+                elif table_name == 'collections':
+                    db.session.execute(db.text("DELETE FROM collection_lecture"))
+                    db.session.execute(db.text("DELETE FROM collection"))
+                elif table_name == 'lecture_topics':
+                    db.session.execute(db.text("DELETE FROM lecture_topic"))
+                elif table_name == 'lecture_tags':
+                    db.session.execute(db.text("DELETE FROM lecture_tag"))
+                elif table_name == 'collection_lectures':
+                    db.session.execute(db.text("DELETE FROM collection_lecture"))
+                    
+                db.session.commit()
+            
+            # Import the data using the appropriate handler
+            table_import_handler = {
+                'lectures': import_lectures,
+                'topics': import_topics,
+                'tags': import_tags,
+                'ranks': import_ranks,
+                'collections': import_collections,
+                'lecture_topics': import_lecture_topics,
+                'lecture_tags': import_lecture_tags,
+                'collection_lectures': import_collection_lectures
+            }
+            
+            if table_name in table_import_handler:
+                count = table_import_handler[table_name](import_data)
+                db.session.commit()
+                flash(f'Successfully imported {count} {table_name} records')
+            else:
+                flash(f'Unknown table name: {table_name}')
+                
+            return redirect(url_for('db_import_page'))
+            
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error importing table {table_name}: {str(e)}")
+        flash(f'Error importing table: {str(e)}')
+        return redirect(url_for('db_import_page'))
+
+# Helper functions for table import
+def import_topics(import_data):
+    data = import_data.get('topics', [])
+    count = 0
+    
+    for topic_data in data:
+        existing_topic = Topic.query.filter_by(name=topic_data['name']).first()
+        if not existing_topic:
+            new_topic = Topic(name=topic_data['name'])
+            db.session.add(new_topic)
+            count += 1
+            
+    return count
+
+def import_tags(import_data):
+    data = import_data.get('tags', [])
+    count = 0
+    
+    for tag_data in data:
+        existing_tag = Tag.query.filter_by(name=tag_data['name']).first()
+        if not existing_tag:
+            new_tag = Tag(name=tag_data['name'])
+            db.session.add(new_tag)
+            count += 1
+            
+    return count
+
+def import_ranks(import_data):
+    data = import_data.get('ranks', [])
+    count = 0
+    
+    for rank_data in data:
+        existing_rank = Rank.query.filter_by(name=rank_data['name']).first()
+        if not existing_rank:
+            new_rank = Rank(name=rank_data['name'])
+            db.session.add(new_rank)
+            count += 1
+            
+    return count
+
+def import_lectures(import_data):
+    data = import_data.get('lectures', [])
+    count = 0
+    
+    for lecture_data in data:
+        existing_lecture = Lecture.query.filter_by(youtube_id=lecture_data['youtube_id']).first()
+        if not existing_lecture:
+            publish_date = datetime.fromisoformat(lecture_data['publish_date'])
+            new_lecture = Lecture(
+                title=lecture_data['title'],
+                youtube_id=lecture_data['youtube_id'],
+                thumbnail_url=lecture_data['thumbnail_url'],
+                publish_date=publish_date,
+                duration_seconds=lecture_data['duration_seconds'],
+                rank_id=lecture_data['rank_id']
+            )
+            db.session.add(new_lecture)
+            count += 1
+            
+    return count
+
+def import_collections(import_data):
+    data = import_data.get('collections', [])
+    count = 0
+    
+    for collection_data in data:
+        existing_collection = Collection.query.filter_by(name=collection_data['name']).first()
+        if not existing_collection:
+            created_at = datetime.fromisoformat(collection_data['created_at']) if collection_data['created_at'] else datetime.utcnow()
+            new_collection = Collection(
+                name=collection_data['name'],
+                description=collection_data['description'],
+                is_paid=collection_data['is_paid'],
+                created_at=created_at
+            )
+            db.session.add(new_collection)
+            count += 1
+            
+    return count
+
+def import_lecture_topics(import_data):
+    data = import_data.get('lecture_topics', [])
+    count = 0
+    
+    for lt_data in data:
+        # Check if relationship exists
+        exists = db.session.query(lecture_topic).filter_by(
+            lecture_id=lt_data['lecture_id'],
+            topic_id=lt_data['topic_id']
+        ).first() is not None
+        
+        if not exists:
+            # Check if both lecture and topic exist
+            lecture = Lecture.query.get(lt_data['lecture_id'])
+            topic = Topic.query.get(lt_data['topic_id'])
+            
+            if lecture and topic:
+                db.session.execute(
+                    db.text(f"INSERT INTO lecture_topic (lecture_id, topic_id) VALUES (:lecture_id, :topic_id)"),
+                    {'lecture_id': lt_data['lecture_id'], 'topic_id': lt_data['topic_id']}
+                )
+                count += 1
+            
+    return count
+
+def import_lecture_tags(import_data):
+    data = import_data.get('lecture_tags', [])
+    count = 0
+    
+    for lt_data in data:
+        # Check if relationship exists
+        exists = db.session.query(lecture_tag).filter_by(
+            lecture_id=lt_data['lecture_id'],
+            tag_id=lt_data['tag_id']
+        ).first() is not None
+        
+        if not exists:
+            # Check if both lecture and tag exist
+            lecture = Lecture.query.get(lt_data['lecture_id'])
+            tag = Tag.query.get(lt_data['tag_id'])
+            
+            if lecture and tag:
+                db.session.execute(
+                    db.text(f"INSERT INTO lecture_tag (lecture_id, tag_id) VALUES (:lecture_id, :tag_id)"),
+                    {'lecture_id': lt_data['lecture_id'], 'tag_id': lt_data['tag_id']}
+                )
+                count += 1
+            
+    return count
+
+def import_collection_lectures(import_data):
+    data = import_data.get('collection_lectures', [])
+    count = 0
+    
+    for cl_data in data:
+        # Check if relationship exists
+        exists = db.session.query(collection_lecture).filter_by(
+            collection_id=cl_data['collection_id'],
+            lecture_id=cl_data['lecture_id']
+        ).first() is not None
+        
+        if not exists:
+            # Check if both collection and lecture exist
+            collection = Collection.query.get(cl_data['collection_id'])
+            lecture = Lecture.query.get(cl_data['lecture_id'])
+            
+            if collection and lecture:
+                db.session.execute(
+                    db.text(f"INSERT INTO collection_lecture (collection_id, lecture_id, position) VALUES (:collection_id, :lecture_id, :position)"),
+                    {'collection_id': cl_data['collection_id'], 'lecture_id': cl_data['lecture_id'], 'position': cl_data['position']}
+                )
+                count += 1
+            
+    return count
+
 @app.route('/admin/reset', methods=['POST'])
 @login_required
 def reset_data():
@@ -1001,6 +1386,79 @@ def edit_collection(collection_id):
 
     return render_template('admin/edit_collection.html', form=form, collection=collection, lectures=lectures)
 
+
+@app.route('/admin/collection/<int:collection_id>/bulk-add', methods=['GET', 'POST'])
+@login_required
+def bulk_add_lectures(collection_id):
+    """Add multiple lectures to a collection at once."""
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+        
+    collection = Collection.query.get_or_404(collection_id)
+    
+    # Get all existing lecture IDs in this collection
+    existing_lecture_ids = db.session.query(collection_lecture.c.lecture_id).filter(
+        collection_lecture.c.collection_id == collection_id
+    ).all()
+    existing_lecture_ids = [lid[0] for lid in existing_lecture_ids]
+    
+    # Get all lectures that are NOT in this collection
+    available_lectures = Lecture.query.filter(~Lecture.id.in_(existing_lecture_ids)).order_by(Lecture.publish_date.desc()).all()
+    
+    # Get metadata for filtering
+    topics = Topic.query.all()
+    tags = Tag.query.all()
+    ranks = Rank.query.all()
+    
+    if request.method == 'POST':
+        # Get the selected lecture IDs from the form
+        lecture_ids = request.form.getlist('lecture_ids')
+        
+        if not lecture_ids:
+            flash('No lectures were selected')
+            return redirect(url_for('bulk_add_lectures', collection_id=collection_id))
+        
+        try:
+            # Get the maximum position in the collection
+            max_position_result = db.session.query(db.func.max(collection_lecture.c.position)).filter(
+                collection_lecture.c.collection_id == collection_id
+            ).first()
+            max_position = max_position_result[0] if max_position_result[0] is not None else 0
+            
+            # Add each selected lecture to the collection
+            for i, lecture_id in enumerate(lecture_ids):
+                # Use direct SQL to add the relationship
+                position = max_position + i + 1
+                db.session.execute(
+                    db.text(f"""
+                        INSERT INTO collection_lecture (collection_id, lecture_id, position)
+                        VALUES (:collection_id, :lecture_id, :position)
+                    """),
+                    {
+                        'collection_id': collection_id,
+                        'lecture_id': lecture_id,
+                        'position': position
+                    }
+                )
+            
+            db.session.commit()
+            flash(f'Successfully added {len(lecture_ids)} lectures to the collection')
+            return redirect(url_for('edit_collection', collection_id=collection_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error adding lectures to collection: {str(e)}")
+            flash(f'Error adding lectures to collection: {str(e)}')
+            return redirect(url_for('bulk_add_lectures', collection_id=collection_id))
+    
+    return render_template('admin/bulk_add_lectures.html', 
+                          collection=collection,
+                          available_lectures=available_lectures,
+                          topics=topics,
+                          tags=tags,
+                          ranks=ranks)
+
 @app.route('/admin/collection/<int:collection_id>/reorder', methods=['POST'])
 @login_required
 def reorder_collection_lectures(collection_id):
@@ -1288,7 +1746,11 @@ def admin_login():
 def service_worker():
     return send_from_directory('.', 'service-worker.js')
 
-# Sitemap route
+# Sitemap and robots.txt routes
 @app.route('/sitemap.xml')
 def sitemap():
-    return send_from_directory('.', 'sitemap.xml', mimetype='application/xml')
+    return send_from_directory('static', 'sitemap.xml', mimetype='application/xml')
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory('static', 'robots.txt', mimetype='text/plain')

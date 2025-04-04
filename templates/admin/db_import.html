@@ -1,0 +1,97 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Import Database{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Import Database</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        <i class="fas fa-info-circle"></i> 
+                        Choose what data you want to import. You can import individual tables or multiple tables at once.
+                    </p>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Importing data may create duplicate entries if the data already exists in the database. 
+                        The system will try to avoid duplicates when possible.
+                    </div>
+
+                    <form action="{{ url_for('import_data') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="import_file" class="form-label">1. Import Complete Database or Multiple Tables</label>
+                            <input type="file" class="form-control" id="import_file" name="import_file" accept=".json">
+                            <div class="form-text">Select a JSON file exported from this system.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="merge_data" name="merge_data" value="1">
+                                <label class="form-check-label" for="merge_data">
+                                    Merge with existing data (uncheck to replace existing data)
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-file-import me-2"></i> Import Data
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h5>2. Import Individual Tables</h5>
+                    <form action="{{ url_for('import_table') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="table_file" class="form-label">Select Table File</label>
+                            <input type="file" class="form-control" id="table_file" name="table_file" accept=".json">
+                            <div class="form-text">Select a JSON file for a specific table.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="table_name" class="form-label">Table Type</label>
+                            <select class="form-select" id="table_name" name="table_name" required>
+                                <option value="" selected disabled>-- Select Table Type --</option>
+                                <option value="lectures">Lectures</option>
+                                <option value="topics">Topics</option>
+                                <option value="tags">Tags</option>
+                                <option value="ranks">Ranks</option>
+                                <option value="collections">Collections</option>
+                                <option value="lecture_topics">Lecture-Topic Relationships</option>
+                                <option value="lecture_tags">Lecture-Tag Relationships</option>
+                                <option value="collection_lectures">Collection-Lecture Relationships</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="replace_table" name="replace_table" value="1">
+                                <label class="form-check-label" for="replace_table">
+                                    Replace existing table data (uncheck to merge with existing data)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-table me-2"></i> Import Table
+                        </button>
+                    </form>
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
