@@ -428,7 +428,7 @@ def export_data():
         # Return JSON file for download
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         response = jsonify(export_data)
-        response.headers.set('Content-Disposition', 'attachment', filename=f'baduk_lectures_export_{timestamp}.json')
+        response.headers.set('Content-Disposition', f'attachment; filename=baduk_lectures_export_{timestamp}.json')
         return response
     except Exception as e:
         logging.error(f"Error exporting data: {str(e)}")
