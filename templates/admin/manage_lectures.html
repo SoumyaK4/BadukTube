@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Manage Lectures - Baduk Lectures{% endblock %}
@@ -51,6 +50,29 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete the lecture "<span id="lectureTitle"></span>"?
+        <p class="text-danger mt-2">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteForm" method="POST">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -68,6 +90,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const rankFilter = document.getElementById('rank-filter');
     const resultsContainer = document.getElementById('results-container');
     const loadMoreButton = document.getElementById('load-more');
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    const deleteForm = document.getElementById('deleteForm');
     
     // Load lectures on page load
     loadLectures();
@@ -97,6 +121,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isLoading && hasNextPage) {
             currentPage++;
             loadLectures(false);
+        }
+    });
+    
+    // Setup delete lecture event delegation
+    resultsContainer.addEventListener('click', function(e) {
+        const deleteButton = e.target.closest('.delete-lecture');
+        if (deleteButton) {
+            e.preventDefault();
+            const lectureId = deleteButton.getAttribute('data-lecture-id');
+            const lectureTitle = deleteButton.getAttribute('data-lecture-title');
+            
+            // Set the form action and lecture title
+            deleteForm.action = `/admin/lecture/delete/${lectureId}`;
+            document.getElementById('lectureTitle').textContent = lectureTitle;
+            
+            // Show the modal
+            deleteModal.show();
         }
     });
     
@@ -188,6 +229,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <a href="/admin/lecture/edit/${lecture.id}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
+                                    <button class="btn btn-sm btn-danger delete-lecture" data-lecture-id="${lecture.id}" data-lecture-title="${lecture.title}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
                                 </div>
                             </div>
                         </div>

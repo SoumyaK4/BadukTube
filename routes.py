@@ -1143,6 +1143,49 @@ def manage_lectures():
     ranks = Rank.query.all()
     return render_template('admin/manage_lectures.html', topics=topics, tags=tags, ranks=ranks)
 
+@app.route('/admin/lecture/delete/<int:lecture_id>', methods=['POST'])
+@login_required
+def delete_lecture(lecture_id):
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+    
+    try:
+        lecture = Lecture.query.get_or_404(lecture_id)
+        lecture_title = lecture.title
+        
+        # First, remove the lecture from all collections using the association table
+        # We need to do this because we don't have a direct "collections" attribute on Lecture
+        collections = Collection.query.join(
+            collection_lecture,
+            Collection.id == collection_lecture.c.collection_id
+        ).filter(
+            collection_lecture.c.lecture_id == lecture_id
+        ).all()
+        
+        # Remove from all collections
+        for collection in collections:
+            collection.lectures.remove(lecture)
+        
+        # Clean up lecture-topic and lecture-tag associations
+        db.session.execute(db.delete(lecture_topic).where(lecture_topic.c.lecture_id == lecture_id))
+        db.session.execute(db.delete(lecture_tag).where(lecture_tag.c.lecture_id == lecture_id))
+        
+        # Delete the lecture from the database
+        db.session.delete(lecture)
+        success, error = safe_commit()
+        
+        if success:
+            flash(f'Lecture "{lecture_title}" deleted successfully')
+        else:
+            flash(f'Error deleting lecture: {error}')
+            
+        return redirect(url_for('manage_lectures'))
+    except Exception as e:
+        logging.error(f"Error deleting lecture: {str(e)}")
+        flash('Error deleting lecture')
+        return redirect(url_for('manage_lectures'))
+
 @app.cli.command("create-admin")
 def create_admin():
     """Create an admin user."""
