@@ -30,28 +30,28 @@
     {
       "src": "/static/images/screenshots/search.png",
       "type": "image/png",
-      "sizes": "540x960",
+      "sizes": "444x768",
       "platform": "narrow",
       "label": "Search for baduk lectures"
     },
     {
       "src": "/static/images/screenshots/collections.png",
       "type": "image/png",
-      "sizes": "540x960",
+      "sizes": "444x768",
       "platform": "narrow",
       "label": "Browse lecture collections"
     },
     {
       "src": "/static/images/screenshots/collection.png",
       "type": "image/png",
-      "sizes": "540x960",
+      "sizes": "444x768",
       "platform": "narrow",
       "label": "View lecture series"
     },
     {
       "src": "/static/images/screenshots/menu.png",
       "type": "image/png",
-      "sizes": "540x960",
+      "sizes": "444x768",
       "platform": "narrow",
       "label": "App navigation menu"
     }
@@ -61,7 +61,7 @@
       "name": "Search Lectures",
       "short_name": "Search",
       "description": "Search for baduk lectures by topic, tag, or rank",
-      "url": "/search",
+      "url": "/",
       "icons": [
         {
           "src": "/static/images/favicons/favicon-32x32.png",
