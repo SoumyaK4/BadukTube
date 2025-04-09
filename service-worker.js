@@ -17,7 +17,6 @@ const STATIC_RESOURCES = [
   '/static/images/favicons/android-chrome-192x192.png',
   '/static/images/favicons/apple-touch-icon.png',
   '/static/images/favicons/favicon-32x32.png',
-  '/static/images/favicons/favicon-16x16.png',
   '/static/images/screenshots/mobile.png',
   '/static/images/screenshots/home.png',
   '/static/images/screenshots/collections.png',
