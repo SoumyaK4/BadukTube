@@ -199,6 +199,13 @@ body {
 }
 
 #search-input {
+  height: 38px;
+  font-size: 1rem;
+  border-radius: 6px;
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--input-border);
+}
 
 /* Video duration badge */
 .duration-badge {
@@ -211,7 +218,7 @@ body {
     border-radius: 4px !important;
     font-size: 12px !important;
     font-weight: bold !important;
-    z-index: 10 !important;
+    z-index: 50 !important; /* Increased z-index to ensure visibility */
     pointer-events: none !important; /* Prevents the badge from interfering with clicks */
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.3) !important;
     display: block !important;
@@ -231,20 +238,15 @@ body {
 #results-container .lecture-thumbnail .duration-badge {
     position: absolute !important;
     display: block !important;
-    z-index: 20 !important;
+    z-index: 50 !important; /* Increased z-index to match global rule */
+    bottom: 8px !important;
+    right: 8px !important;
+    background: rgba(0, 0, 0, 0.8) !important;
 }
 
 .lecture-thumbnail {
     position: relative;
     overflow: hidden;
-}
-
-  height: 38px;
-  font-size: 1rem;
-  border-radius: 6px;
-  background-color: var(--input-bg);
-  color: var(--input-text);
-  border-color: var(--input-border);
 }
 
 .filter-controls {

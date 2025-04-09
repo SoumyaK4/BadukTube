@@ -31,6 +31,13 @@
   ],
   "screenshots": [
     {
+      "src": "/static/images/screenshots/mobile.png",
+      "type": "image/png",
+      "sizes": "1366x768",
+      "platform": "narrow",
+      "label": "Mobile View"
+    },
+    {
       "src": "/static/images/screenshots/home.png",
       "type": "image/png",
       "sizes": "1366x768",
@@ -43,13 +50,6 @@
       "sizes": "1366x768",
       "platform": "narrow",
       "label": "Browse lecture collections"
-    },
-    {
-      "src": "/static/images/screenshots/mobile.png",
-      "type": "image/png",
-      "sizes": "1366x768",
-      "platform": "narrow",
-      "label": "Mobile View"
     },
     {
       "src": "/static/images/screenshots/about2.png",
