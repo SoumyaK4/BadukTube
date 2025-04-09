@@ -4,11 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}BadukTube - Free Lectures Database for Baduk/Weiqi/Go Game{% endblock %}</title>
-    <meta name="description" content="Free Lectures Database for Baduk/Weiqi/Go Game. Learn from curated video lectures on various topics and levels.">
+    <meta name="description" content="Free Lectures Database for Baduk/Weiqi/Go Game. Learn from curated video lectures on various topics and levels for players of all strengths.">
+    
+    <!-- Core Web Vitals & SEO Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <meta name="google" content="nositelinkssearchbox">
+    <link rel="canonical" href="{{ request.url }}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}BadukTube - Free Lectures Database for Baduk/Weiqi/Go Game{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Free Lectures Database for Baduk/Weiqi/Go Game. Learn from curated video lectures on various topics and levels.{% endblock %}">
+    <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png', _external=True) }}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:site_name" content="BadukTube">
+    
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}BadukTube - Free Lectures Database for Baduk/Weiqi/Go Game{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Free Lectures Database for Baduk/Weiqi/Go Game. Learn from curated video lectures on various topics and levels.{% endblock %}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='images/og-image.png', _external=True) }}">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "BadukTube",
+      "url": "{{ request.url_root }}",
+      "description": "Free Lectures Database for Baduk/Weiqi/Go Game. Learn from curated video lectures on various topics and levels.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ request.url_root }}search?q={search_term}",
+        "query-input": "required name=search_term"
+      }
+    }
+    </script>
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#1a1a1a">
+    <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -23,6 +57,7 @@
     <!-- Preload critical assets -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" as="style" crossorigin="anonymous">
     <link rel="preload" href="{{ url_for('static', filename='css/style.css') }}" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='js/main.js') }}" as="script">
 
     <!-- CSS -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" crossorigin="anonymous">
@@ -38,7 +73,7 @@
     <!-- Defer non-critical CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'" crossorigin="anonymous">
 
-    <!-- Goatcounter -->
+    <!-- Analytics with privacy-first approach -->
     <script data-goatcounter="https://baduktube.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 
     {% block extra_head %}{% endblock %}
@@ -49,7 +84,7 @@
         <div class="container">
             <a class="navbar-brand" href="/">
                 <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="Baduk Lectures" width="40" height="40" class="d-inline-block align-top me-2">
-                BadukTube v0.9.2
+                BadukTube v1.0.0
             </a>
             <!-- Hamburger Button for Mobile -->
             <button class="hamburger-menu" type="button" aria-label="Toggle navigation">

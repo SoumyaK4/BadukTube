@@ -1,15 +1,15 @@
 
-const CACHE_NAME = 'baduk-lectures-v1';
+const CACHE_NAME = 'baduk-lectures-v2';
 const STATIC_RESOURCES = [
   '/static/css/style.css',
   '/static/css/pwa-install.css',
-  '/static/css/mobile-menu.css',
+  '/static/css/admin.css',
   '/static/js/theme.js',
   '/static/js/search.js',
   '/static/js/video.js',
-  '/static/js/mobile-menu.js',
   '/static/js/main.js',
   '/static/js/pwa-install.js',
+  '/static/js/register-sw.js',
   '/static/images/logo.webp',
   '/static/images/favicons/favicon.ico',
   '/static/images/favicons/android-chrome-512x512.png',
@@ -19,11 +19,7 @@ const STATIC_RESOURCES = [
   '/static/images/screenshots/collections.png',
   '/static/images/screenshots/collection.png',
   '/static/images/screenshots/menu.png',
-  '/static/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
+  '/static/manifest.json'
 ];
 
 // Install event
@@ -51,7 +47,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event
+// Fetch event with improved error handling
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
@@ -59,7 +55,40 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        
+        // Clone the request because it's a one-time use stream
+        const fetchRequest = event.request.clone();
+        
+        return fetch(fetchRequest)
+          .then((response) => {
+            // Check if valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            
+            // Clone the response because it's a one-time use stream
+            const responseToCache = response.clone();
+            
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                // Only cache same-origin requests to avoid CORS issues
+                if (event.request.url.startsWith(self.location.origin)) {
+                  cache.put(event.request, responseToCache);
+                }
+              });
+              
+            return response;
+          })
+          .catch(() => {
+            // Return a fallback or just re-throw the error
+            // If it's a navigation request, could return a cached fallback page
+            if (event.request.mode === 'navigate') {
+              return caches.match('/');
+            }
+            
+            // Otherwise just propagate the error
+            throw new Error('Network request failed');
+          });
       })
   );
 });
