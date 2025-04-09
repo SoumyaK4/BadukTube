@@ -2,15 +2,18 @@
   "name": "BadukTube",
   "short_name": "BadukTube",
   "description": "Free Lectures Database for Baduk/Weiqi/Go Game",
+  "scope": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#1a1a1a",
+  "display_override": ["window-control-overlay", "fullscreen", "minimal-ui"],
+  "orientation": "natural",
   "icons": [
     {
-      "src": "/static/images/logo.webp",
-      "sizes": "1617x1617",
-      "type": "image/webp",
+      "src": "/static/images/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -28,32 +31,39 @@
   ],
   "screenshots": [
     {
-      "src": "/static/images/screenshots/search.png",
+      "src": "/static/images/screenshots/home.png",
       "type": "image/png",
-      "sizes": "444x768",
-      "platform": "narrow",
+      "sizes": "1366x768",
+      "form_factor": "narrow",
       "label": "Search for baduk lectures"
     },
     {
       "src": "/static/images/screenshots/collections.png",
       "type": "image/png",
-      "sizes": "444x768",
+      "sizes": "1366x768",
       "platform": "narrow",
       "label": "Browse lecture collections"
     },
     {
-      "src": "/static/images/screenshots/collection.png",
+      "src": "/static/images/screenshots/mobile.png",
       "type": "image/png",
-      "sizes": "444x768",
+      "sizes": "1366x768",
       "platform": "narrow",
-      "label": "View lecture series"
+      "label": "Mobile View"
     },
     {
-      "src": "/static/images/screenshots/menu.png",
+      "src": "/static/images/screenshots/about2.png",
       "type": "image/png",
-      "sizes": "444x768",
+      "sizes": "1366x768",
       "platform": "narrow",
-      "label": "App navigation menu"
+      "label": "About2"
+    },
+    {
+      "src": "/static/images/screenshots/about1.png",
+      "type": "image/png",
+      "sizes": "1366x768",
+      "platform": "narrow",
+      "label": "About1"
     }
   ],
   "shortcuts": [
@@ -64,8 +74,9 @@
       "url": "/",
       "icons": [
         {
-          "src": "/static/images/favicons/favicon-32x32.png",
-          "sizes": "32x32"
+          "src": "/static/images/favicons/favicon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -76,8 +87,9 @@
       "url": "/collections",
       "icons": [
         {
-          "src": "/static/images/favicons/favicon-32x32.png",
-          "sizes": "32x32"
+          "src": "/static/images/favicons/favicon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }

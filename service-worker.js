@@ -11,14 +11,18 @@ const STATIC_RESOURCES = [
   '/static/js/pwa-install.js',
   '/static/js/register-sw.js',
   '/static/images/logo.webp',
+  '/static/images/og-image.png',
   '/static/images/favicons/favicon.ico',
   '/static/images/favicons/android-chrome-512x512.png',
+  '/static/images/favicons/android-chrome-192x192.png',
   '/static/images/favicons/apple-touch-icon.png',
   '/static/images/favicons/favicon-32x32.png',
-  '/static/images/screenshots/search.png',
+  '/static/images/favicons/favicon-16x16.png',
+  '/static/images/screenshots/mobile.png',
+  '/static/images/screenshots/home.png',
   '/static/images/screenshots/collections.png',
-  '/static/images/screenshots/collection.png',
-  '/static/images/screenshots/menu.png',
+  '/static/images/screenshots/about1.png',
+  '/static/images/screenshots/about2.png',
   '/static/manifest.json'
 ];
 
