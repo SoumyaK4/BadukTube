@@ -11,7 +11,7 @@
   "orientation": "natural",
   "icons": [
     {
-      "src": "/static/images/android-chrome-192x192.png",
+      "src": "/static/images/favicons/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
@@ -30,13 +30,6 @@
     }
   ],
   "screenshots": [
-    {
-      "src": "/static/images/screenshots/home.png",
-      "type": "image/png",
-      "sizes": "1366x768",
-      "form_factor": "wide",
-      "label": "Search for baduk lectures"
-    },
     {
       "src": "/static/images/screenshots/mobile.png",
       "type": "image/png",
