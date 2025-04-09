@@ -31,6 +31,13 @@
   ],
   "screenshots": [
     {
+      "src": "/static/images/screenshots/home.png",
+      "type": "image/png",
+      "sizes": "1366x768",
+      "form_factor": "wide",
+      "label": "Search for baduk lectures"
+    },
+    {
       "src": "/static/images/screenshots/mobile.png",
       "type": "image/png",
       "sizes": "1366x768",
