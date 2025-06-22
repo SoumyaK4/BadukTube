@@ -4,7 +4,6 @@
 <div class="container my-5">
     <div class="row">
         {% for collection in collections %}
-        {% if not collection.is_paid %}
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 {% if collection.lectures|length > 0 %}
@@ -27,7 +26,6 @@
                 </div>
             </div>
         </div>
-        {% endif %}
         {% endfor %}
     </div>
 </div>

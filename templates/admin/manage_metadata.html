@@ -164,9 +164,6 @@
                         <div class="list-group-item d-flex justify-content-between align-items-center" style="background-color: var(--card-bg); border-color: var(--border-color);">
                             <div>
                                 {{ collection.name }}
-                                <span class="badge {% if collection.is_paid %}bg-success{% else %}bg-secondary{% endif %} rounded-pill">
-                                    {% if collection.is_paid %}Paid{% else %}Free{% endif %}
-                                </span>
                             </div>
                             <div>
                                 <form method="POST" class="d-inline">

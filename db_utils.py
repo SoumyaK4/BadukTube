@@ -18,25 +18,13 @@ def get_metadata():
         'collections': Collection.query.all()
     }
 
-def get_filtered_lectures_query(include_paid=True):
+def get_filtered_lectures_query():
     """Get base query for lectures with eager loading"""
     query = Lecture.query.options(
         db.joinedload(Lecture.topics),
         db.joinedload(Lecture.tags),
         db.joinedload(Lecture.rank)
     ).distinct()
-    
-    # Filter out paid videos if user is not logged in and include_paid is False
-    if not current_user.is_authenticated and not include_paid:
-        # Exclude lectures from paid collections
-        paid_lecture_subquery = db.session.query(collection_lecture.c.lecture_id).join(
-            Collection, Collection.id == collection_lecture.c.collection_id
-        ).filter(Collection.is_paid == True).subquery()
-        
-        # Create a proper select statement from the subquery
-        paid_lecture_ids = select(paid_lecture_subquery.c.lecture_id)
-        
-        query = query.filter(~Lecture.id.in_(paid_lecture_ids))
     
     return query
 

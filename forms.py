@@ -24,6 +24,5 @@ class MetadataForm(FlaskForm):
 class CollectionForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     description = StringField('Description')
-    is_paid = SelectField('Is Paid', choices=[(0, 'Free'), (1, 'Paid')], coerce=int)
     submit = SubmitField('Save Collection')
 

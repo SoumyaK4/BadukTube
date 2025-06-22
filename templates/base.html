@@ -84,7 +84,7 @@
         <div class="container">
             <a class="navbar-brand" href="/">
                 <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="Baduk Lectures" width="40" height="40" class="d-inline-block align-top me-2">
-                BadukTube v1.0.0
+                BadukTube v1.0.1
             </a>
             <!-- Hamburger Button for Mobile -->
             <button class="hamburger-menu" type="button" aria-label="Toggle navigation">
@@ -106,11 +106,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.path == '/about' %}active{% endif %}" href="{{ url_for('about') }}">About</a>
                     </li>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/paid-collections' %}active{% endif %}" href="{{ url_for('paid_collections') }}">Paid Collections</a>
-                    </li>
-                    {% endif %}
+
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}

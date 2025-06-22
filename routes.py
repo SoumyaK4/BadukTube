@@ -55,7 +55,7 @@ def api_search():
         }
 
         # Get base query and apply filters
-        lectures_query = get_filtered_lectures_query(include_paid=False)
+        lectures_query = get_filtered_lectures_query()
         lectures_query = apply_search_filters(lectures_query, search_params)
 
         # Add pagination
@@ -397,7 +397,7 @@ def export_data():
                 'id': collection.id,
                 'name': collection.name,
                 'description': collection.description,
-                'is_paid': collection.is_paid,
+
                 'created_at': collection.created_at.isoformat() if collection.created_at else None,
                 'lectures': lecture_positions
             })
@@ -506,7 +506,6 @@ def import_data():
                             new_collection = Collection(
                                 name=collection_data['name'],
                                 description=collection_data.get('description', ''),
-                                is_paid=collection_data.get('is_paid', False),
                                 created_at=datetime.fromisoformat(collection_data['created_at']) if collection_data.get('created_at') else datetime.utcnow()
                             )
                             db.session.add(new_collection)
@@ -699,7 +698,6 @@ def export_table(table_name):
                     'id': collection.id,
                     'name': collection.name,
                     'description': collection.description,
-                    'is_paid': collection.is_paid,
                     'created_at': collection.created_at.isoformat() if collection.created_at else None
                 })
                 
@@ -915,7 +913,6 @@ def import_collections(import_data):
             new_collection = Collection(
                 name=collection_data['name'],
                 description=collection_data['description'],
-                is_paid=collection_data['is_paid'],
                 created_at=created_at
             )
             db.session.add(new_collection)
@@ -1062,7 +1059,7 @@ def reset_data():
                 'id': collection.id,
                 'name': collection.name,
                 'description': collection.description,
-                'is_paid': collection.is_paid,
+
                 'created_at': collection.created_at.isoformat() if collection.created_at else None,
                 'lectures': lecture_positions
             })
@@ -1196,7 +1193,7 @@ def create_admin():
     logging.info("Admin user created successfully!")
 @app.route('/collections')
 def collections():
-    collections = Collection.query.filter_by(is_paid=False).all()
+    collections = Collection.query.all()
     
     # Calculate total duration for each collection
     for collection in collections:
@@ -1212,33 +1209,14 @@ def collections():
     
     return render_template('collections.html', collections=collections)
 
-@app.route('/paid-collections')
-@login_required
-def paid_collections():
-    collections = Collection.query.filter_by(is_paid=True).all()
-    
-    # Calculate total duration for each collection
-    for collection in collections:
-        total_duration_seconds = sum(lecture.duration_seconds or 0 for lecture in collection.lectures)
-        hours, remainder = divmod(total_duration_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        collection.total_duration = {
-            'hours': hours, 
-            'minutes': minutes, 
-            'seconds': seconds,
-            'total_seconds': total_duration_seconds
-        }
-    
-    return render_template('paid_collections.html', collections=collections)
+
 
 @app.route('/collection/<int:collection_id>', methods=['GET', 'POST'])
 def view_collection(collection_id):
     collection = Collection.query.get_or_404(collection_id)
 
     # Restrict access to paid collections if user is not logged in
-    if collection.is_paid and not current_user.is_authenticated:
-        flash('You need to login to access paid collections.')
-        return redirect(url_for('login'))
+
 
     # Handle admin actions (remove lecture)
     if request.method == 'POST' and current_user.is_authenticated and current_user.is_admin:
@@ -1316,11 +1294,9 @@ def manage_collections():
 
     if request.method == 'POST':
         if 'add_collection' in request.form and form.validate_on_submit():
-            is_paid = form.is_paid.data == 1  # Direct comparison since is_paid is an integer
             collection = Collection(
                 name=form.name.data,
-                description=form.description.data,
-                is_paid=is_paid
+                description=form.description.data
             )
             db.session.add(collection)
             db.session.commit()
@@ -1384,24 +1360,20 @@ def edit_collection(collection_id):
             # Save original values before modification
             orig_name = collection.name
             orig_desc = collection.description
-            orig_paid = collection.is_paid
-
             # Get new values from form
             new_name = form.name.data
             new_desc = form.description.data 
-            new_paid = form.is_paid.data == 1  # Direct comparison since is_paid is an integer
 
             # Update basic collection info with direct SQL to avoid ORM issues
             db.session.execute(
                 db.text(f"""
                     UPDATE collection 
-                    SET name = :name, description = :description, is_paid = :is_paid 
+                    SET name = :name, description = :description 
                     WHERE id = :id
                 """),
                 {
                     'name': new_name,
                     'description': new_desc,
-                    'is_paid': new_paid,
                     'id': collection_id
                 }
             )
@@ -1425,7 +1397,6 @@ def edit_collection(collection_id):
         # Populate form with current values
         form.name.data = collection.name
         form.description.data = collection.description
-        form.is_paid.data = [1] if collection.is_paid else [0]
 
     return render_template('admin/edit_collection.html', form=form, collection=collection, lectures=lectures)
 

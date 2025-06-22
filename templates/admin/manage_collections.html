@@ -34,17 +34,7 @@
                             {% endif %}
                         </div>
                         
-                        <div class="mb-3">
-                            {{ form.is_paid.label(class="form-label") }}
-                            {{ form.is_paid(class="form-select") }}
-                            {% if form.is_paid.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.is_paid.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
+
                         
                         <button type="submit" name="add_collection" class="btn btn-primary">Add Collection</button>
                     </form>
@@ -57,10 +47,7 @@
                             <div>
                                 <h5>{{ collection.name }}</h5>
                                 <p class="mb-1">{{ collection.description }}</p>
-                                <span class="badge {% if collection.is_paid %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {% if collection.is_paid %}Paid{% else %}Free{% endif %}
-                                </span>
-                                <small class="text-muted ms-2">{{ collection.lectures|length }} lectures</small>
+                                <small class="text-muted">{{ collection.lectures|length }} lectures</small>
                             </div>
                             <div>
                                 <a href="{{ url_for('edit_collection', collection_id=collection.id) }}" class="btn btn-sm btn-primary me-2">
