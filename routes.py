@@ -938,7 +938,7 @@ def import_lecture_topics(import_data):
             
             if lecture and topic:
                 db.session.execute(
-                    db.text(f"INSERT INTO lecture_topic (lecture_id, topic_id) VALUES (:lecture_id, :topic_id)"),
+                    db.text("INSERT INTO lecture_topic (lecture_id, topic_id) VALUES (:lecture_id, :topic_id)"),
                     {'lecture_id': lt_data['lecture_id'], 'topic_id': lt_data['topic_id']}
                 )
                 count += 1
@@ -963,7 +963,7 @@ def import_lecture_tags(import_data):
             
             if lecture and tag:
                 db.session.execute(
-                    db.text(f"INSERT INTO lecture_tag (lecture_id, tag_id) VALUES (:lecture_id, :tag_id)"),
+                    db.text("INSERT INTO lecture_tag (lecture_id, tag_id) VALUES (:lecture_id, :tag_id)"),
                     {'lecture_id': lt_data['lecture_id'], 'tag_id': lt_data['tag_id']}
                 )
                 count += 1
@@ -988,7 +988,7 @@ def import_collection_lectures(import_data):
             
             if collection and lecture:
                 db.session.execute(
-                    db.text(f"INSERT INTO collection_lecture (collection_id, lecture_id, position) VALUES (:collection_id, :lecture_id, :position)"),
+                    db.text("INSERT INTO collection_lecture (collection_id, lecture_id, position) VALUES (:collection_id, :lecture_id, :position)"),
                     {'collection_id': cl_data['collection_id'], 'lecture_id': cl_data['lecture_id'], 'position': cl_data['position']}
                 )
                 count += 1
@@ -1223,9 +1223,10 @@ def view_collection(collection_id):
         if 'remove_lecture' in request.form:
             lecture_id = int(request.form['remove_lecture'])
 
-            # Use direct SQL to remove just this relationship
+            # Use parameterized query to remove this relationship
             db.session.execute(
-                db.text(f"DELETE FROM collection_lecture WHERE collection_id = {collection_id} AND lecture_id = {lecture_id}")
+                db.text("DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"),
+                {'collection_id': collection_id, 'lecture_id': lecture_id}
             )
             success, error = safe_commit()
 
@@ -1343,9 +1344,10 @@ def edit_collection(collection_id):
             lecture_id = int(request.form['remove_lecture'])
             lecture = Lecture.query.get_or_404(lecture_id)
 
-            # Use direct SQL to remove just this relationship
+            # Use parameterized query to remove this relationship
             db.session.execute(
-                db.text(f"DELETE FROM collection_lecture WHERE collection_id = {collection_id} AND lecture_id = {lecture_id}")
+                db.text("DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"),
+                {'collection_id': collection_id, 'lecture_id': lecture_id}
             )
             db.session.commit()
 
@@ -1364,9 +1366,9 @@ def edit_collection(collection_id):
             new_name = form.name.data
             new_desc = form.description.data 
 
-            # Update basic collection info with direct SQL to avoid ORM issues
+            # Update basic collection info with parameterized query
             db.session.execute(
-                db.text(f"""
+                db.text("""
                     UPDATE collection 
                     SET name = :name, description = :description 
                     WHERE id = :id
@@ -1445,7 +1447,7 @@ def bulk_add_lectures(collection_id):
                 # Use direct SQL to add the relationship
                 position = max_position + i + 1
                 db.session.execute(
-                    db.text(f"""
+                    db.text("""
                         INSERT INTO collection_lecture (collection_id, lecture_id, position)
                         VALUES (:collection_id, :lecture_id, :position)
                     """),
