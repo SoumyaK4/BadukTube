@@ -1,0 +1,173 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Import Single YouTube Video{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>Import Single YouTube Video</h1>
+
+    <form method="POST" class="mb-4">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+        {% if not video_info %}
+        <!-- Step 1: Enter YouTube API Key and Video URL -->
+        <input type="hidden" name="step" value="1">
+
+        <div class="mb-3">
+            <label for="youtube_api_key" class="form-label">YouTube API Key</label>
+            <input type="text" class="form-control" id="youtube_api_key" name="youtube_api_key" value="{{ youtube_api_key }}" required>
+            <small class="form-text text-muted">Enter your YouTube Data API v3 key</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="youtube_url" class="form-label">YouTube Video URL</label>
+            <input type="url" class="form-control" id="youtube_url" name="youtube_url" 
+                   placeholder="https://www.youtube.com/watch?v=..." value="{{ youtube_url }}" required>
+            <small class="form-text text-muted">Enter the full YouTube video URL</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search me-2"></i>Fetch Video Info
+        </button>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary ms-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to Admin Panel
+        </a>
+        {% endif %}
+
+        {% if video_info %}
+        <!-- Step 2: Configure and save the video -->
+        <input type="hidden" name="step" value="2">
+        <input type="hidden" name="youtube_api_key" value="{{ youtube_api_key }}">
+        <input type="hidden" name="youtube_url" value="{{ youtube_url }}">
+        <input type="hidden" name="video_id" value="{{ video_info.youtube_id }}">
+        <input type="hidden" name="thumbnail_url" value="{{ video_info.thumbnail_url }}">
+        <input type="hidden" name="duration_seconds" value="{{ video_info.duration_seconds }}">
+        <input type="hidden" name="publish_date" value="{{ video_info.publish_date.isoformat() if video_info.publish_date else '' }}">
+
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Video Preview -->
+                <div class="card mb-4" style="background-color: var(--card-bg); border-color: var(--border-color);">
+                    <div class="card-header" style="background-color: rgba(0,0,0,0.1); border-color: var(--border-color);">
+                        <h5 class="mb-0">Video Preview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <img src="{{ video_info.thumbnail_url }}" alt="Video thumbnail" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        </div>
+                        <div class="mb-2">
+                            <strong>Title:</strong> {{ video_info.title }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Video ID:</strong> {{ video_info.youtube_id }}
+                        </div>
+                        {% if video_info.duration_seconds %}
+                        <div class="mb-2">
+                            <strong>Duration:</strong> {{ (video_info.duration_seconds|int // 60) }}:{{ '%02d'|format(video_info.duration_seconds|int % 60) }}
+                        </div>
+                        {% endif %}
+                        {% if video_info.publish_date %}
+                        <div class="mb-2">
+                            <strong>Published:</strong> {{ video_info.publish_date.strftime('%Y-%m-%d') }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <!-- Video Configuration -->
+                <div class="card mb-4" style="background-color: var(--card-bg); border-color: var(--border-color);">
+                    <div class="card-header" style="background-color: rgba(0,0,0,0.1); border-color: var(--border-color);">
+                        <h5 class="mb-0">Video Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Title (editable) -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ video_info.title }}" required>
+                        </div>
+
+                        <!-- Rank (required) -->
+                        <div class="mb-3">
+                            <label for="rank" class="form-label">Rank <span class="text-danger">*</span></label>
+                            <select class="form-select" id="rank" name="rank" required>
+                                <option value="">Select a rank</option>
+                                {% for rank in ranks %}
+                                <option value="{{ rank.id }}">{{ rank.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Topic (required) -->
+                        <div class="mb-3">
+                            <label for="topic" class="form-label">Topic <span class="text-danger">*</span></label>
+                            <select class="form-select" id="topic" name="topic" required>
+                                <option value="">Select a topic</option>
+                                {% for topic in topics %}
+                                <option value="{{ topic.id }}">{{ topic.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Tags (optional, multiple) -->
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags</label>
+                            <select class="form-select" id="tags" name="tags" multiple>
+                                {% for tag in tags %}
+                                <option value="{{ tag.id }}">{{ tag.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple tags</small>
+                        </div>
+
+                        <!-- Collections (optional, multiple) -->
+                        <div class="mb-3">
+                            <label for="collections" class="form-label">Collections</label>
+                            <select class="form-select" id="collections" name="collections" multiple>
+                                {% for collection in collections %}
+                                <option value="{{ collection.id }}">{{ collection.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple collections</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Save Video
+                            </button>
+                            <a href="{{ url_for('video_import') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Start Over
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+
+    {% if not video_info %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle me-2"></i>How to use this feature:</h5>
+                <ol class="mb-0">
+                    <li>Enter your YouTube Data API v3 key (get one from <a href="https://console.developers.google.com/" target="_blank" class="alert-link">Google Cloud Console</a>)</li>
+                    <li>Paste the full YouTube video URL</li>
+                    <li>Click "Fetch Video Info" to retrieve video details</li>
+                    <li>Configure the video metadata (rank, topic, tags, collections)</li>
+                    <li>Click "Save Video" to add it to your database</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.form-select[multiple] {
+    min-height: 120px;
+}
+</style>
+{% endblock %}

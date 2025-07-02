@@ -1737,6 +1737,129 @@ def playlist_import():
     return render_template('admin/playlist_import.html', topics=topics, tags=tags, 
                           ranks=ranks, collections=collections)
 
+@app.route('/admin/video-import', methods=['GET', 'POST'])
+@login_required
+def video_import():
+    if not current_user.is_admin:
+        flash('You do not have admin privileges')
+        return redirect(url_for('search'))
+
+    from utils import get_youtube_video_info
+
+    # Get metadata for the dropdown selections
+    topics = Topic.query.all()
+    tags = Tag.query.all()
+    ranks = Rank.query.all()
+    collections = Collection.query.all()
+
+    if request.method == 'POST':
+        youtube_api_key = request.form.get('youtube_api_key', '')
+        youtube_url = request.form.get('youtube_url', '')
+        step = request.form.get('step')
+
+        # Step 1: Fetch video info
+        if step == '1':
+            if not youtube_url:
+                flash('Please enter a YouTube URL')
+                return render_template('admin/video_import.html', topics=topics, tags=tags, 
+                                      ranks=ranks, collections=collections)
+            
+            # Get video information
+            video_info = get_youtube_video_info(youtube_url, youtube_api_key)
+            if not video_info:
+                flash('Could not fetch video information. Please check the URL and API key.')
+                return render_template('admin/video_import.html', topics=topics, tags=tags, 
+                                      ranks=ranks, collections=collections)
+
+            # Check if video already exists
+            existing_lecture = Lecture.query.filter_by(youtube_id=video_info['youtube_id']).first()
+            if existing_lecture:
+                flash(f'Video "{video_info["title"]}" already exists in the database')
+                return render_template('admin/video_import.html', topics=topics, tags=tags, 
+                                      ranks=ranks, collections=collections)
+
+            return render_template('admin/video_import.html', 
+                                  video_info=video_info,
+                                  youtube_api_key=youtube_api_key,
+                                  youtube_url=youtube_url,
+                                  topics=topics, tags=tags, ranks=ranks, collections=collections)
+
+        # Step 2: Save the video
+        elif step == '2':
+            video_id = request.form.get('video_id')
+            title = request.form.get('title')
+            thumbnail_url = request.form.get('thumbnail_url')
+            duration_seconds = request.form.get('duration_seconds', 0)
+            publish_date_str = request.form.get('publish_date')
+            
+            # Get form selections
+            rank_id = request.form.get('rank')
+            topic_id = request.form.get('topic')
+            tag_ids = request.form.getlist('tags')
+            collection_ids = request.form.getlist('collections')
+
+            if not all([video_id, title, rank_id, topic_id]):
+                flash('Video ID, title, rank, and topic are required')
+                return redirect(url_for('video_import'))
+
+            try:
+                # Parse publish date
+                from datetime import datetime
+                publish_date = datetime.utcnow()  # Default fallback
+                if publish_date_str:
+                    try:
+                        # If it's already a datetime object (from video_info), convert to string first
+                        if isinstance(publish_date_str, datetime):
+                            publish_date = publish_date_str
+                        else:
+                            # Try to parse the string
+                            publish_date = datetime.fromisoformat(publish_date_str.replace('Z', '+00:00'))
+                    except:
+                        publish_date = datetime.utcnow()
+
+                # Create new lecture
+                new_lecture = Lecture(
+                    title=title,
+                    youtube_id=video_id,
+                    thumbnail_url=thumbnail_url,
+                    publish_date=publish_date,
+                    duration_seconds=int(duration_seconds) if duration_seconds else 0,
+                    rank_id=rank_id
+                )
+
+                # Add topic (required)
+                topic = Topic.query.get(topic_id)
+                if topic:
+                    new_lecture.topics.append(topic)
+
+                # Add tags (optional, multiple)
+                if tag_ids:
+                    for tag_id in tag_ids:
+                        tag = Tag.query.get(tag_id)
+                        if tag:
+                            new_lecture.tags.append(tag)
+
+                # Add to collections (optional, multiple)
+                if collection_ids:
+                    for collection_id in collection_ids:
+                        collection = Collection.query.get(collection_id)
+                        if collection:
+                            collection.lectures.append(new_lecture)
+
+                db.session.add(new_lecture)
+                db.session.commit()
+                flash(f'Video "{title}" added successfully')
+                return redirect(url_for('video_import'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error saving video: {str(e)}')
+                return redirect(url_for('video_import'))
+
+    # GET request
+    return render_template('admin/video_import.html', topics=topics, tags=tags, 
+                          ranks=ranks, collections=collections)
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if current_user.is_authenticated:
