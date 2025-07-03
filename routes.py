@@ -1,7 +1,6 @@
 from flask import render_template, redirect, url_for, request, jsonify, flash, send_from_directory, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-import os
 import uuid
 import logging
 import json
@@ -13,6 +12,7 @@ from db_utils import (
     get_metadata, get_filtered_lectures_query, apply_search_filters,
     safe_commit, get_collection_lectures
 )
+from youtube_utils import extract_playlist_id, fetch_playlist_videos
 
 # Setup CSRF protection
 def generate_csrf_token():
@@ -503,10 +503,14 @@ def import_data():
                         existing_collection = Collection.query.filter_by(name=collection_data['name']).first()
                         if not existing_collection:
                             # Always create with a new ID
+                            if created_at_str := collection_data.get('created_at'):
+                                created_at = datetime.fromisoformat(created_at_str)
+                            else:
+                                created_at = datetime.utcnow()
                             new_collection = Collection(
                                 name=collection_data['name'],
                                 description=collection_data.get('description', ''),
-                                created_at=datetime.fromisoformat(collection_data['created_at']) if collection_data.get('created_at') else datetime.utcnow()
+                                created_at=created_at
                             )
                             db.session.add(new_collection)
                             db.session.flush()
@@ -909,7 +913,10 @@ def import_collections(import_data):
     for collection_data in data:
         existing_collection = Collection.query.filter_by(name=collection_data['name']).first()
         if not existing_collection:
-            created_at = datetime.fromisoformat(collection_data['created_at']) if collection_data['created_at'] else datetime.utcnow()
+            if collection_data['created_at']:
+                created_at = datetime.fromisoformat(collection_data['created_at'])
+            else:
+                created_at = datetime.utcnow()
             new_collection = Collection(
                 name=collection_data['name'],
                 description=collection_data['description'],
@@ -987,10 +994,12 @@ def import_collection_lectures(import_data):
             lecture = Lecture.query.get(cl_data['lecture_id'])
             
             if collection and lecture:
-                db.session.execute(
-                    db.text("INSERT INTO collection_lecture (collection_id, lecture_id, position) VALUES (:collection_id, :lecture_id, :position)"),
-                    {'collection_id': cl_data['collection_id'], 'lecture_id': cl_data['lecture_id'], 'position': cl_data['position']}
-                )
+                sql = "INSERT INTO collection_lecture (collection_id, lecture_id, position) " \
+                    "VALUES (:collection_id, :lecture_id, :position)"
+                db.session.execute(db.text(sql), {
+                    'collection_id': cl_data['collection_id'], 'lecture_id': cl_data['lecture_id'],
+                    'position': cl_data['position'],
+                })
                 count += 1
             
     return count
@@ -1215,19 +1224,14 @@ def collections():
 def view_collection(collection_id):
     collection = Collection.query.get_or_404(collection_id)
 
-    # Restrict access to paid collections if user is not logged in
-
-
     # Handle admin actions (remove lecture)
     if request.method == 'POST' and current_user.is_authenticated and current_user.is_admin:
         if 'remove_lecture' in request.form:
             lecture_id = int(request.form['remove_lecture'])
 
             # Use parameterized query to remove this relationship
-            db.session.execute(
-                db.text("DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"),
-                {'collection_id': collection_id, 'lecture_id': lecture_id}
-            )
+            sql = "DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"
+            db.session.execute(db.text(sql), {'collection_id': collection_id, 'lecture_id': lecture_id})
             success, error = safe_commit()
 
             if success:
@@ -1334,7 +1338,7 @@ def edit_collection(collection_id):
     # Try to order by position if it exists
     try:
         lectures = lectures_query.order_by(collection_lecture.c.position).all()
-    except:
+    except Exception:
         # Fall back to default ordering
         lectures = lectures_query.all()
 
@@ -1342,13 +1346,11 @@ def edit_collection(collection_id):
         # Handle lecture removal if explicitly requested
         if 'remove_lecture' in request.form:
             lecture_id = int(request.form['remove_lecture'])
-            lecture = Lecture.query.get_or_404(lecture_id)
+            Lecture.query.get_or_404(lecture_id)
 
             # Use parameterized query to remove this relationship
-            db.session.execute(
-                db.text("DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"),
-                {'collection_id': collection_id, 'lecture_id': lecture_id}
-            )
+            sql = "DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"
+            db.session.execute(db.text(sql), {'collection_id': collection_id, 'lecture_id': lecture_id})
             db.session.commit()
 
             flash('Lecture removed from collection')
@@ -1387,9 +1389,7 @@ def edit_collection(collection_id):
             if orig_name != new_name:
                 changes.append(f"Name: '{orig_name}' → '{new_name}'")
             if orig_desc != new_desc:
-                changes.append(f"Description updated")
-            if orig_paid != new_paid:
-                changes.append(f"Paid status: {orig_paid} → {new_paid}")
+                changes.append("Description updated")
 
             change_msg = ", ".join(changes) if changes else "No changes detected"
             flash(f'Collection updated successfully! {change_msg}')
@@ -1420,7 +1420,8 @@ def bulk_add_lectures(collection_id):
     existing_lecture_ids = [lid[0] for lid in existing_lecture_ids]
     
     # Get all lectures that are NOT in this collection
-    available_lectures = Lecture.query.filter(~Lecture.id.in_(existing_lecture_ids)).order_by(Lecture.publish_date.desc()).all()
+    available_lectures = Lecture.query.filter(~Lecture.id.in_(existing_lecture_ids)) \
+        .order_by(Lecture.publish_date.desc()).all()
     
     # Get metadata for filtering
     topics = Topic.query.all()
@@ -1486,9 +1487,6 @@ def reorder_collection_lectures(collection_id):
         # Get lecture IDs from request
         lecture_ids = request.json.get('lecture_ids', [])
 
-        # Check if this is only a reorder action (not modifying collection content)
-        action = request.json.get('action', '')
-
         # Verify all lectures exist in this collection before making changes
         collection = Collection.query.get_or_404(collection_id)
         collection_lecture_ids = [lecture.id for lecture in collection.lectures]
@@ -1526,9 +1524,6 @@ def move_lecture_position(collection_id):
 
         if lecture_id is None or new_position is None:
             return jsonify({'success': False, 'error': 'Missing lecture_id or new_position'}), 400
-
-        # Get the collection
-        collection = Collection.query.get_or_404(collection_id)
 
         # Get all lectures in this collection with their positions
         lectures_positions = db.session.query(
@@ -1605,8 +1600,6 @@ def playlist_import():
     if not current_user.is_admin:
         flash('You do not have admin privileges')
         return redirect(url_for('search'))
-
-    from youtube_utils import extract_playlist_id, fetch_playlist_videos
 
     # Default values
     videos = []
@@ -1744,8 +1737,6 @@ def video_import():
         flash('You do not have admin privileges')
         return redirect(url_for('search'))
 
-    from utils import get_youtube_video_info
-
     # Get metadata for the dropdown selections
     topics = Topic.query.all()
     tags = Tag.query.all()
@@ -1804,7 +1795,6 @@ def video_import():
 
             try:
                 # Parse publish date
-                from datetime import datetime
                 publish_date = datetime.utcnow()  # Default fallback
                 if publish_date_str:
                     try:
@@ -1814,7 +1804,7 @@ def video_import():
                         else:
                             # Try to parse the string
                             publish_date = datetime.fromisoformat(publish_date_str.replace('Z', '+00:00'))
-                    except:
+                    except Exception:
                         publish_date = datetime.utcnow()
 
                 # Create new lecture

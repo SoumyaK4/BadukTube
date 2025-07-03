@@ -4,9 +4,6 @@ Database utility functions to centralize common database operations
 """
 from app import db
 from models import Topic, Tag, Rank, Lecture, Collection, collection_lecture
-from flask_login import current_user
-from sqlalchemy import select
-from sqlalchemy.sql import text
 import logging
 
 def get_metadata():
@@ -77,6 +74,6 @@ def get_collection_lectures(collection_id):
     # Try to order by position if the column exists
     try:
         return query.order_by(collection_lecture.c.position).all()
-    except:
+    except Exception:
         # Fall back to no ordering if position column doesn't exist
         return query.all()
