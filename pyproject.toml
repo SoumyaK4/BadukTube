@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 120
+[tool.ruff.lint]
+select = [
+	'E', 'F',
+	'YTT', 'T10', 'ISC001', 'PIE', 'RSE',
+	'PLC', 'PLE',
+]
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = 'single'

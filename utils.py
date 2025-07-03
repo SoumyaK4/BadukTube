@@ -2,9 +2,10 @@ import os
 import requests
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
-from app import app
 import logging
 import isodate
+
+from youtube_utils import get_youtube_video_info as fallback_get_info
 
 def extract_youtube_video_id(url):
     """
@@ -60,7 +61,6 @@ def get_youtube_video_info(url, api_key=None):
     if not youtube_api_key:
         logging.warning("No YouTube API key provided - using fallback method")
         # If no API key is available, use the function from youtube_utils
-        from youtube_utils import get_youtube_video_info as fallback_get_info
         return fallback_get_info(url, api_key)
     
     # Get video info using YouTube Data API

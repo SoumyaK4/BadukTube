@@ -3,6 +3,8 @@ import requests
 from datetime import datetime
 import logging
 
+logging.basicConfig(level=logging.INFO)
+
 def extract_playlist_id(playlist_url):
     """Extract the playlist ID from a YouTube playlist URL."""
     playlist_id_regex = r'(?:youtube\.com/playlist\?list=|youtu\.be/playlist\?list=)([^&\s]+)'
@@ -58,8 +60,8 @@ def fetch_playlist_videos(api_key, playlist_id):
                     duration_seconds = parse_duration(duration_str)
                     
                     # Use actual upload date instead of playlist addition date if available
-                    if video_details[video_id].get('upload_date'):
-                        upload_date = datetime.fromisoformat(video_details[video_id]['upload_date'].replace('Z', '+00:00'))
+                    if upload_date_str := video_details[video_id].get('upload_date'):
+                        upload_date = datetime.fromisoformat(upload_date_str.replace('Z', '+00:00'))
                 
                 # If no upload date was found in video details, fall back to playlist date
                 if not upload_date:
@@ -191,8 +193,3 @@ def parse_duration(duration_iso):
     except Exception as e:
         logging.error(f"Error parsing duration '{duration_iso}': {str(e)}")
         return 0
-
-
-from utils import extract_youtube_video_id
-
-logging.basicConfig(level=logging.INFO)
