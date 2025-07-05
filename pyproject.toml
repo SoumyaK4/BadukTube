@@ -2,9 +2,13 @@
 line-length = 120
 [tool.ruff.lint]
 select = [
-	'E', 'F',
-	'YTT', 'T10', 'ISC001', 'PIE', 'RSE',
+	'E', 'F', 'I',
+	'YTT', 'COM', 'T10', 'ISC', 'G', 'PIE', 'Q', 'RSE',
 	'PLC', 'PLE',
+	'RUF',
+]
+ignore = [
+	'ISC002', # multi-line-implicit-string-concatenation
 ]
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'
