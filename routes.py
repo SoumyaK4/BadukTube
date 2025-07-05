@@ -245,7 +245,7 @@ def manage_metadata():
                         flash(f'Cannot delete topic: {error}')
                 except Exception as e:
                     db.session.rollback()
-                    flash(f'Cannot delete topic: it may be used by lectures. Error: {str(e)}')
+                    flash(f'Cannot delete topic: it may be used by lectures. Error: {e}')
 
         elif 'delete_tag' in request.form:
             tag_id = request.form['delete_tag']
@@ -260,7 +260,7 @@ def manage_metadata():
                         flash(f'Cannot delete tag: {error}')
                 except Exception as e:
                     db.session.rollback()
-                    flash(f'Cannot delete tag: it may be used by lectures. Error: {str(e)}')
+                    flash(f'Cannot delete tag: it may be used by lectures. Error: {e}')
 
         elif 'delete_rank' in request.form:
             rank_id = request.form['delete_rank']
@@ -275,7 +275,7 @@ def manage_metadata():
                         flash(f'Cannot delete rank: {error}')
                 except Exception as e:
                     db.session.rollback()
-                    flash(f'Cannot delete rank: it may be used by lectures. Error: {str(e)}')
+                    flash(f'Cannot delete rank: it may be used by lectures. Error: {e}')
 
         elif 'delete_collection' in request.form:
             collection_id = request.form['delete_collection']
@@ -290,7 +290,7 @@ def manage_metadata():
                         flash(f'Cannot delete collection: {error}')
                 except Exception as e:
                     db.session.rollback()
-                    flash(f'Cannot delete collection: it may be used by lectures. Error: {str(e)}')
+                    flash(f'Cannot delete collection: it may be used by lectures. Error: {e}')
 
         # Handle edits with common pattern
         elif 'edit_topic' in request.form:
@@ -427,7 +427,7 @@ def export_data():
         return response
     except Exception as e:
         logging.error('Error exporting data: %s', e)
-        flash(f'Error exporting data: {str(e)}')
+        flash(f'Error exporting data: {e}')
         return redirect(url_for('admin_panel'))
 
 @app.route('/admin/import', methods=['GET', 'POST'])
@@ -611,7 +611,7 @@ def import_data():
         except Exception as e:
             db.session.rollback()
             logging.error('Error importing data: %s', e)
-            flash(f'Error importing data: {str(e)}')
+            flash(f'Error importing data: {e}')
             return redirect(request.url)
 
     return render_template('admin/import.html')
@@ -746,7 +746,7 @@ def export_table(table_name):
         
     except Exception as e:
         logging.error('Error exporting table {table_name}: %s', e)
-        flash(f'Error exporting table: {str(e)}')
+        flash(f'Error exporting table: {e}')
         return redirect(url_for('db_export_page'))
 
 @app.route('/admin/db-import', methods=['GET'])
@@ -842,7 +842,7 @@ def import_table():
     except Exception as e:
         db.session.rollback()
         logging.error('Error importing table {table_name}: %s', e)
-        flash(f'Error importing table: {str(e)}')
+        flash(f'Error importing table: {e}')
         return redirect(url_for('db_import_page'))
 
 # Helper functions for table import
@@ -1120,7 +1120,7 @@ def reset_data():
     except Exception as e:
         db.session.rollback()
         logging.error('Error resetting data: %s', e)
-        flash(f'Error resetting data: {str(e)}')
+        flash(f'Error resetting data: {e}')
         return redirect(url_for('admin_panel'))
 
 @app.route('/admin')
@@ -1466,7 +1466,7 @@ def bulk_add_lectures(collection_id):
         except Exception as e:
             db.session.rollback()
             logging.error('Error adding lectures to collection: %s', e)
-            flash(f'Error adding lectures to collection: {str(e)}')
+            flash(f'Error adding lectures to collection: {e}')
             return redirect(url_for('bulk_add_lectures', collection_id=collection_id))
     
     return render_template('admin/bulk_add_lectures.html', 
@@ -1843,7 +1843,7 @@ def video_import():
 
             except Exception as e:
                 db.session.rollback()
-                flash(f'Error saving video: {str(e)}')
+                flash(f'Error saving video: {e}')
                 return redirect(url_for('video_import'))
 
     # GET request
