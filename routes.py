@@ -84,7 +84,7 @@ def api_search():
             'current_page': pagination.page,
         })
     except Exception as e:
-        logging.error(f'Error in api_search: {str(e)}')
+        logging.error('Error in api_search: %s', e)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -172,7 +172,7 @@ def edit_lecture(lecture_id):
             flash('Lecture updated successfully!')
             return redirect(url_for('manage_lectures'))
         except Exception as e:
-            logging.error(f'Error updating lecture: {str(e)}')
+            logging.error('Error updating lecture: %s', e)
             flash('Error updating lecture. Please check the form data.')
 
     elif request.method == 'GET':
@@ -426,7 +426,7 @@ def export_data():
         response.headers.set('Content-Disposition', 'attachment', filename='baduk_lectures_export.json')
         return response
     except Exception as e:
-        logging.error(f'Error exporting data: {str(e)}')
+        logging.error('Error exporting data: %s', e)
         flash(f'Error exporting data: {str(e)}')
         return redirect(url_for('admin_panel'))
 
@@ -610,7 +610,7 @@ def import_data():
 
         except Exception as e:
             db.session.rollback()
-            logging.error(f'Error importing data: {str(e)}')
+            logging.error('Error importing data: %s', e)
             flash(f'Error importing data: {str(e)}')
             return redirect(request.url)
 
@@ -745,7 +745,7 @@ def export_table(table_name):
         return response
         
     except Exception as e:
-        logging.error(f'Error exporting table {table_name}: {str(e)}')
+        logging.error('Error exporting table {table_name}: %s', e)
         flash(f'Error exporting table: {str(e)}')
         return redirect(url_for('db_export_page'))
 
@@ -841,7 +841,7 @@ def import_table():
             
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Error importing table {table_name}: {str(e)}')
+        logging.error('Error importing table {table_name}: %s', e)
         flash(f'Error importing table: {str(e)}')
         return redirect(url_for('db_import_page'))
 
@@ -1119,7 +1119,7 @@ def reset_data():
         return response
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Error resetting data: {str(e)}')
+        logging.error('Error resetting data: %s', e)
         flash(f'Error resetting data: {str(e)}')
         return redirect(url_for('admin_panel'))
 
@@ -1188,7 +1188,7 @@ def delete_lecture(lecture_id):
             
         return redirect(url_for('manage_lectures'))
     except Exception as e:
-        logging.error(f'Error deleting lecture: {str(e)}')
+        logging.error('Error deleting lecture: %s', e)
         flash('Error deleting lecture')
         return redirect(url_for('manage_lectures'))
 
@@ -1289,7 +1289,7 @@ values(position=position),
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Error reordering lectures: {str(e)}')
+        logging.error('Error reordering lectures: %s', e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/collections', methods=['GET', 'POST'])
@@ -1465,7 +1465,7 @@ def bulk_add_lectures(collection_id):
             
         except Exception as e:
             db.session.rollback()
-            logging.error(f'Error adding lectures to collection: {str(e)}')
+            logging.error('Error adding lectures to collection: %s', e)
             flash(f'Error adding lectures to collection: {str(e)}')
             return redirect(url_for('bulk_add_lectures', collection_id=collection_id))
     
@@ -1508,7 +1508,7 @@ def reorder_collection_lectures(collection_id):
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Error reordering lectures: {str(e)}')
+        logging.error('Error reordering lectures: %s', e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/collection/<int:collection_id>/move-lecture', methods=['POST'])
@@ -1591,7 +1591,7 @@ def move_lecture_position(collection_id):
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Error moving lecture: {str(e)}')
+        logging.error('Error moving lecture: %s', e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/playlist-import', methods=['GET', 'POST'])
@@ -1865,9 +1865,9 @@ def admin_login():
             flash('Invalid username or password')
             # Log authentication failures at info level
             if user:
-                logging.info(f'Failed login attempt: Password incorrect for user {user.username}')
+                logging.info('Failed login attempt: Password incorrect for user %s', user.username)
             else:
-                logging.info(f'Failed login attempt: User not found: {form.username.data}')
+                logging.info('Failed login attempt: User not found: %s', form.username.data)
     return render_template('admin/login.html', form=form)
 
 # Service worker route

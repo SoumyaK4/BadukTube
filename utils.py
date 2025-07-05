@@ -12,7 +12,7 @@ def extract_youtube_video_id(url):
     Extract YouTube video ID from various URL formats
     Returns video_id or None if not found
     """
-    logging.debug(f'Processing YouTube URL: {url}')
+    logging.debug('Processing YouTube URL: %s', url)
     parsed_url = urlparse(url)
     video_id = None
 
@@ -39,14 +39,14 @@ def extract_youtube_video_id(url):
                 video_id = parsed_url.path.split('/shorts/')[1].split('?')[0]
 
         if video_id:
-            logging.debug(f'Extracted video ID: {video_id}')
+            logging.debug('Extracted video ID: %s', video_id)
             return video_id
 
-        logging.error(f'Unsupported URL format: {url}')
+        logging.error('Unsupported URL format: %s', url)
         return None
 
     except Exception as e:
-        logging.error(f'Error parsing YouTube URL: {str(e)}')
+        logging.error('Error parsing YouTube URL: %s', e)
         return None
 
 def get_youtube_video_info(url, api_key=None):

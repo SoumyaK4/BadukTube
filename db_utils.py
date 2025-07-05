@@ -59,7 +59,7 @@ def safe_commit():
         return True, None
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Database error: {str(e)}')
+        logging.error('Database error: %s', e)
         return False, str(e)
 
 def get_collection_lectures(collection_id):

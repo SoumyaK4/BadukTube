@@ -32,7 +32,7 @@ def init_default_users():
             admin = User.query.filter_by(username=admin_username).first()
             if not admin:
                 if admin_password:
-                    logging.info(f'Creating admin user: {admin_username}')
+                    logging.info('Creating admin user: %s', admin_username)
                     admin = User(username=admin_username, is_admin=True)
                     admin.set_password(admin_password)
                     db.session.add(admin)
@@ -53,7 +53,7 @@ def init_default_users():
             regular_user = User.query.filter_by(username=user_username).first()
             if not regular_user:
                 if user_password:
-                    logging.info(f'Creating regular user: {user_username}')
+                    logging.info('Creating regular user: %s', user_username)
                     regular_user = User(username=user_username, is_admin=False)
                     regular_user.set_password(user_password)
                     db.session.add(regular_user)
@@ -65,5 +65,5 @@ def init_default_users():
             db.session.commit()
             logging.info('Default users initialized')
         except Exception as e:
-            logging.error(f'Error initializing users: {e}')
+            logging.error('Error initializing users: %s', e)
             db.session.rollback()

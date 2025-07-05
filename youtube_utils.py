@@ -114,7 +114,7 @@ def get_video_details(api_key, video_ids):
 
         return result
     except Exception as e:
-        logging.error(f'Error fetching video details: {e}')
+        logging.error('Error fetching video details: %s', e)
         return {}
 
 def get_youtube_video_info(youtube_url, api_key=None):
@@ -146,7 +146,7 @@ def get_youtube_video_info(youtube_url, api_key=None):
                     'duration_seconds': duration_seconds,
                 }
         except Exception as e:
-            logging.error(f'Error fetching video info from API: {e}')
+            logging.error('Error fetching video info from API: %s', e)
             # Fall back to basic info if API call fails
     
     # Return basic info if no API key is provided or API call failed
@@ -191,5 +191,5 @@ def parse_duration(duration_iso):
         total_seconds = hours * 3600 + minutes * 60 + seconds
         return total_seconds
     except Exception as e:
-        logging.error(f"Error parsing duration '{duration_iso}': {str(e)}")
+        logging.error('Error parsing duration %r: %s', duration_iso, e)
         return 0
