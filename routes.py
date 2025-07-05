@@ -1,17 +1,22 @@
-from flask import render_template, redirect, url_for, request, jsonify, flash, send_from_directory, session
-from flask_login import login_user, logout_user, login_required, current_user
-from app import app, db
-import uuid
-import logging
 import json
+import logging
+import uuid
 from datetime import datetime
-from models import User, Lecture, Topic, Tag, Rank, Collection, collection_lecture, lecture_topic, lecture_tag
-from forms import LoginForm, LectureForm, MetadataForm, CollectionForm
-from utils import get_youtube_video_info
+
+from flask import flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from flask_login import current_user, login_required, login_user, logout_user
+
+from app import app, db
 from db_utils import (
-    get_metadata, get_filtered_lectures_query, apply_search_filters,
-    safe_commit, get_collection_lectures,
+    apply_search_filters,
+    get_collection_lectures,
+    get_filtered_lectures_query,
+    get_metadata,
+    safe_commit,
 )
+from forms import CollectionForm, LectureForm, LoginForm, MetadataForm
+from models import Collection, Lecture, Rank, Tag, Topic, User, collection_lecture, lecture_tag, lecture_topic
+from utils import get_youtube_video_info
 from youtube_utils import extract_playlist_id, fetch_playlist_videos
 
 # Setup CSRF protection

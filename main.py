@@ -1,7 +1,8 @@
-from app import app
+import logging
 import signal
 import sys
-import logging
+
+from app import app
 
 def signal_handler(sig, frame):
     logging.info('Shutting down gracefully...')

@@ -1,7 +1,8 @@
-import re
-import requests
-from datetime import datetime
 import logging
+import re
+from datetime import datetime
+
+import requests
 
 logging.basicConfig(level=logging.INFO)
 

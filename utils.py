@@ -1,9 +1,10 @@
-import os
-import requests
-from urllib.parse import urlparse, parse_qs
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
+from urllib.parse import parse_qs, urlparse
+
 import isodate
+import requests
 
 from youtube_utils import get_youtube_video_info as fallback_get_info
 

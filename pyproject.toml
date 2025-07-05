@@ -8,3 +8,5 @@ select = [
 ]
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'
+[tool.ruff.lint.isort]
+lines-after-imports = 1

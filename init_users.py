@@ -1,8 +1,9 @@
 
-from app import app, db
-from models import User
 import logging
 import os
+
+from app import app, db
+from models import User
 
 def add_is_admin_column():
     """Add is_admin column to user table if it doesn't exist."""

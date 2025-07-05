@@ -2,9 +2,10 @@
 """
 Database utility functions to centralize common database operations
 """
-from app import db
-from models import Topic, Tag, Rank, Lecture, Collection, collection_lecture
 import logging
+
+from app import db
+from models import Collection, Lecture, Rank, Tag, Topic, collection_lecture
 
 def get_metadata():
     """Get all metadata for forms and filtering"""
