@@ -84,7 +84,7 @@ def api_search():
             'current_page': pagination.page
         })
     except Exception as e:
-        logging.error(f"Error in api_search: {str(e)}")
+        logging.error(f'Error in api_search: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -125,7 +125,7 @@ def edit_lecture(lecture_id):
             lecture.title = form.title.data
 
             # Only update YouTube info if URL changed
-            if form.youtube_url.data != f"https://youtu.be/{lecture.youtube_id}":
+            if form.youtube_url.data != f'https://youtu.be/{lecture.youtube_id}':
                 # Get the API key from the session if available
                 youtube_api_key = session.get('youtube_api_key', '')
                 video_info = get_youtube_video_info(form.youtube_url.data, api_key=youtube_api_key)
@@ -172,12 +172,12 @@ def edit_lecture(lecture_id):
             flash('Lecture updated successfully!')
             return redirect(url_for('manage_lectures'))
         except Exception as e:
-            logging.error(f"Error updating lecture: {str(e)}")
+            logging.error(f'Error updating lecture: {str(e)}')
             flash('Error updating lecture. Please check the form data.')
 
     elif request.method == 'GET':
         form.title.data = lecture.title
-        form.youtube_url.data = f"https://youtu.be/{lecture.youtube_id}"
+        form.youtube_url.data = f'https://youtu.be/{lecture.youtube_id}'
 
         # Set topics data (multi-select)
         form.topics.data = [topic.id for topic in lecture.topics]
@@ -200,10 +200,10 @@ def edit_lecture(lecture_id):
 @app.route('/admin/metadata', methods=['GET', 'POST'])
 @login_required
 def manage_metadata():
-    topic_form = MetadataForm(prefix="topic")
-    tag_form = MetadataForm(prefix="tag")
-    rank_form = MetadataForm(prefix="rank")
-    collection_form = MetadataForm(prefix="collection")
+    topic_form = MetadataForm(prefix='topic')
+    tag_form = MetadataForm(prefix='tag')
+    rank_form = MetadataForm(prefix='rank')
+    collection_form = MetadataForm(prefix='collection')
 
     if request.method == 'POST':
         # Handle additions
@@ -426,7 +426,7 @@ def export_data():
         response.headers.set('Content-Disposition', 'attachment', filename='baduk_lectures_export.json')
         return response
     except Exception as e:
-        logging.error(f"Error exporting data: {str(e)}")
+        logging.error(f'Error exporting data: {str(e)}')
         flash(f'Error exporting data: {str(e)}')
         return redirect(url_for('admin_panel'))
 
@@ -610,7 +610,7 @@ def import_data():
 
         except Exception as e:
             db.session.rollback()
-            logging.error(f"Error importing data: {str(e)}")
+            logging.error(f'Error importing data: {str(e)}')
             flash(f'Error importing data: {str(e)}')
             return redirect(request.url)
 
@@ -745,7 +745,7 @@ def export_table(table_name):
         return response
         
     except Exception as e:
-        logging.error(f"Error exporting table {table_name}: {str(e)}")
+        logging.error(f'Error exporting table {table_name}: {str(e)}')
         flash(f'Error exporting table: {str(e)}')
         return redirect(url_for('db_export_page'))
 
@@ -786,35 +786,35 @@ def import_table():
             import_data = json.loads(file.read().decode('utf-8'))
             
             # Validate that the file contains the expected table
-            if table_name not in import_data and f"{table_name}" not in import_data:
+            if table_name not in import_data and f'{table_name}' not in import_data:
                 flash(f'The selected file does not contain {table_name} data')
                 return redirect(url_for('db_import_page'))
                 
             # If replacing, clear the table first
             if replace_table:
                 if table_name == 'lectures':
-                    db.session.execute(db.text("DELETE FROM lecture_topic"))
-                    db.session.execute(db.text("DELETE FROM lecture_tag"))
-                    db.session.execute(db.text("DELETE FROM collection_lecture"))
-                    db.session.execute(db.text("DELETE FROM lecture"))
+                    db.session.execute(db.text('DELETE FROM lecture_topic'))
+                    db.session.execute(db.text('DELETE FROM lecture_tag'))
+                    db.session.execute(db.text('DELETE FROM collection_lecture'))
+                    db.session.execute(db.text('DELETE FROM lecture'))
                 elif table_name == 'topics':
-                    db.session.execute(db.text("DELETE FROM lecture_topic"))
-                    db.session.execute(db.text("DELETE FROM topic"))
+                    db.session.execute(db.text('DELETE FROM lecture_topic'))
+                    db.session.execute(db.text('DELETE FROM topic'))
                 elif table_name == 'tags':
-                    db.session.execute(db.text("DELETE FROM lecture_tag"))
-                    db.session.execute(db.text("DELETE FROM tag"))
+                    db.session.execute(db.text('DELETE FROM lecture_tag'))
+                    db.session.execute(db.text('DELETE FROM tag'))
                 elif table_name == 'ranks':
-                    db.session.execute(db.text("UPDATE lecture SET rank_id = NULL"))
-                    db.session.execute(db.text("DELETE FROM rank"))
+                    db.session.execute(db.text('UPDATE lecture SET rank_id = NULL'))
+                    db.session.execute(db.text('DELETE FROM rank'))
                 elif table_name == 'collections':
-                    db.session.execute(db.text("DELETE FROM collection_lecture"))
-                    db.session.execute(db.text("DELETE FROM collection"))
+                    db.session.execute(db.text('DELETE FROM collection_lecture'))
+                    db.session.execute(db.text('DELETE FROM collection'))
                 elif table_name == 'lecture_topics':
-                    db.session.execute(db.text("DELETE FROM lecture_topic"))
+                    db.session.execute(db.text('DELETE FROM lecture_topic'))
                 elif table_name == 'lecture_tags':
-                    db.session.execute(db.text("DELETE FROM lecture_tag"))
+                    db.session.execute(db.text('DELETE FROM lecture_tag'))
                 elif table_name == 'collection_lectures':
-                    db.session.execute(db.text("DELETE FROM collection_lecture"))
+                    db.session.execute(db.text('DELETE FROM collection_lecture'))
                     
                 db.session.commit()
             
@@ -841,7 +841,7 @@ def import_table():
             
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error importing table {table_name}: {str(e)}")
+        logging.error(f'Error importing table {table_name}: {str(e)}')
         flash(f'Error importing table: {str(e)}')
         return redirect(url_for('db_import_page'))
 
@@ -945,7 +945,7 @@ def import_lecture_topics(import_data):
             
             if lecture and topic:
                 db.session.execute(
-                    db.text("INSERT INTO lecture_topic (lecture_id, topic_id) VALUES (:lecture_id, :topic_id)"),
+                    db.text('INSERT INTO lecture_topic (lecture_id, topic_id) VALUES (:lecture_id, :topic_id)'),
                     {'lecture_id': lt_data['lecture_id'], 'topic_id': lt_data['topic_id']}
                 )
                 count += 1
@@ -970,7 +970,7 @@ def import_lecture_tags(import_data):
             
             if lecture and tag:
                 db.session.execute(
-                    db.text("INSERT INTO lecture_tag (lecture_id, tag_id) VALUES (:lecture_id, :tag_id)"),
+                    db.text('INSERT INTO lecture_tag (lecture_id, tag_id) VALUES (:lecture_id, :tag_id)'),
                     {'lecture_id': lt_data['lecture_id'], 'tag_id': lt_data['tag_id']}
                 )
                 count += 1
@@ -994,8 +994,8 @@ def import_collection_lectures(import_data):
             lecture = Lecture.query.get(cl_data['lecture_id'])
             
             if collection and lecture:
-                sql = "INSERT INTO collection_lecture (collection_id, lecture_id, position) " \
-                    "VALUES (:collection_id, :lecture_id, :position)"
+                sql = 'INSERT INTO collection_lecture (collection_id, lecture_id, position) ' \
+                    'VALUES (:collection_id, :lecture_id, :position)'
                 db.session.execute(db.text(sql), {
                     'collection_id': cl_data['collection_id'], 'lecture_id': cl_data['lecture_id'],
                     'position': cl_data['position'],
@@ -1094,21 +1094,21 @@ def reset_data():
 
         # Clear database
         # Use raw SQL for faster deletion of many records
-        db.session.execute(db.text("DELETE FROM lecture_topic"))
-        db.session.execute(db.text("DELETE FROM lecture_tag"))
-        db.session.execute(db.text("DELETE FROM collection_lecture"))
-        db.session.execute(db.text("DELETE FROM lecture"))
-        db.session.execute(db.text("DELETE FROM topic"))
-        db.session.execute(db.text("DELETE FROM tag"))
-        db.session.execute(db.text("DELETE FROM rank"))
-        db.session.execute(db.text("DELETE FROM collection"))
+        db.session.execute(db.text('DELETE FROM lecture_topic'))
+        db.session.execute(db.text('DELETE FROM lecture_tag'))
+        db.session.execute(db.text('DELETE FROM collection_lecture'))
+        db.session.execute(db.text('DELETE FROM lecture'))
+        db.session.execute(db.text('DELETE FROM topic'))
+        db.session.execute(db.text('DELETE FROM tag'))
+        db.session.execute(db.text('DELETE FROM rank'))
+        db.session.execute(db.text('DELETE FROM collection'))
         
         # Reset the auto-increment counters
-        db.session.execute(db.text("ALTER SEQUENCE lecture_id_seq RESTART WITH 1"))
-        db.session.execute(db.text("ALTER SEQUENCE topic_id_seq RESTART WITH 1"))
-        db.session.execute(db.text("ALTER SEQUENCE tag_id_seq RESTART WITH 1"))
-        db.session.execute(db.text("ALTER SEQUENCE rank_id_seq RESTART WITH 1"))
-        db.session.execute(db.text("ALTER SEQUENCE collection_id_seq RESTART WITH 1"))
+        db.session.execute(db.text('ALTER SEQUENCE lecture_id_seq RESTART WITH 1'))
+        db.session.execute(db.text('ALTER SEQUENCE topic_id_seq RESTART WITH 1'))
+        db.session.execute(db.text('ALTER SEQUENCE tag_id_seq RESTART WITH 1'))
+        db.session.execute(db.text('ALTER SEQUENCE rank_id_seq RESTART WITH 1'))
+        db.session.execute(db.text('ALTER SEQUENCE collection_id_seq RESTART WITH 1'))
         db.session.commit()
 
         flash('All data has been reset successfully')
@@ -1119,7 +1119,7 @@ def reset_data():
         return response
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error resetting data: {str(e)}")
+        logging.error(f'Error resetting data: {str(e)}')
         flash(f'Error resetting data: {str(e)}')
         return redirect(url_for('admin_panel'))
 
@@ -1188,18 +1188,18 @@ def delete_lecture(lecture_id):
             
         return redirect(url_for('manage_lectures'))
     except Exception as e:
-        logging.error(f"Error deleting lecture: {str(e)}")
+        logging.error(f'Error deleting lecture: {str(e)}')
         flash('Error deleting lecture')
         return redirect(url_for('manage_lectures'))
 
-@app.cli.command("create-admin")
+@app.cli.command('create-admin')
 def create_admin():
     """Create an admin user."""
-    admin = User(username="admin")
-    admin.set_password("BadukAdmin2025!")
+    admin = User(username='admin')
+    admin.set_password('BadukAdmin2025!')
     db.session.add(admin)
     db.session.commit()
-    logging.info("Admin user created successfully!")
+    logging.info('Admin user created successfully!')
 @app.route('/collections')
 def collections():
     collections = Collection.query.all()
@@ -1230,7 +1230,7 @@ def view_collection(collection_id):
             lecture_id = int(request.form['remove_lecture'])
 
             # Use parameterized query to remove this relationship
-            sql = "DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"
+            sql = 'DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id'
             db.session.execute(db.text(sql), {'collection_id': collection_id, 'lecture_id': lecture_id})
             success, error = safe_commit()
 
@@ -1289,7 +1289,7 @@ values(position=position)
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error reordering lectures: {str(e)}")
+        logging.error(f'Error reordering lectures: {str(e)}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/collections', methods=['GET', 'POST'])
@@ -1349,7 +1349,7 @@ def edit_collection(collection_id):
             Lecture.query.get_or_404(lecture_id)
 
             # Use parameterized query to remove this relationship
-            sql = "DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id"
+            sql = 'DELETE FROM collection_lecture WHERE collection_id = :collection_id AND lecture_id = :lecture_id'
             db.session.execute(db.text(sql), {'collection_id': collection_id, 'lecture_id': lecture_id})
             db.session.commit()
 
@@ -1389,9 +1389,9 @@ def edit_collection(collection_id):
             if orig_name != new_name:
                 changes.append(f"Name: '{orig_name}' → '{new_name}'")
             if orig_desc != new_desc:
-                changes.append("Description updated")
+                changes.append('Description updated')
 
-            change_msg = ", ".join(changes) if changes else "No changes detected"
+            change_msg = ', '.join(changes) if changes else 'No changes detected'
             flash(f'Collection updated successfully! {change_msg}')
             return redirect(url_for('manage_collections'))
 
@@ -1465,7 +1465,7 @@ def bulk_add_lectures(collection_id):
             
         except Exception as e:
             db.session.rollback()
-            logging.error(f"Error adding lectures to collection: {str(e)}")
+            logging.error(f'Error adding lectures to collection: {str(e)}')
             flash(f'Error adding lectures to collection: {str(e)}')
             return redirect(url_for('bulk_add_lectures', collection_id=collection_id))
     
@@ -1508,7 +1508,7 @@ def reorder_collection_lectures(collection_id):
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error reordering lectures: {str(e)}")
+        logging.error(f'Error reordering lectures: {str(e)}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/collection/<int:collection_id>/move-lecture', methods=['POST'])
@@ -1591,7 +1591,7 @@ def move_lecture_position(collection_id):
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error moving lecture: {str(e)}")
+        logging.error(f'Error moving lecture: {str(e)}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/playlist-import', methods=['GET', 'POST'])
@@ -1605,8 +1605,8 @@ def playlist_import():
     videos = []
     current_video = None
     current_video_index = 0
-    youtube_api_key = ""
-    playlist_url = ""
+    youtube_api_key = ''
+    playlist_url = ''
 
     # Get metadata for the dropdown selections
     topics = Topic.query.all()
@@ -1865,9 +1865,9 @@ def admin_login():
             flash('Invalid username or password')
             # Log authentication failures at info level
             if user:
-                logging.info(f"Failed login attempt: Password incorrect for user {user.username}")
+                logging.info(f'Failed login attempt: Password incorrect for user {user.username}')
             else:
-                logging.info(f"Failed login attempt: User not found: {form.username.data}")
+                logging.info(f'Failed login attempt: User not found: {form.username.data}')
     return render_template('admin/login.html', form=form)
 
 # Service worker route

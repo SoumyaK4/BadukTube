@@ -29,9 +29,9 @@ def fetch_playlist_videos(api_key, playlist_id):
     try:
         while True:
             # Build URL with pagination token if it exists
-            url = f"https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId={playlist_id}&key={api_key}"
+            url = f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId={playlist_id}&key={api_key}'
             if next_page_token:
-                url += f"&pageToken={next_page_token}"
+                url += f'&pageToken={next_page_token}'
 
             # Make request to get playlist items
             response = requests.get(url)
@@ -95,7 +95,7 @@ def get_video_details(api_key, video_ids):
 
     try:
         # Include snippet part to get upload date, along with contentDetails for duration
-        url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id={ids_str}&key={api_key}"
+        url = f'https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id={ids_str}&key={api_key}'
         response = requests.get(url)
         data = response.json()
 
@@ -114,7 +114,7 @@ def get_video_details(api_key, video_ids):
 
         return result
     except Exception as e:
-        logging.error(f"Error fetching video details: {e}")
+        logging.error(f'Error fetching video details: {e}')
         return {}
 
 def get_youtube_video_info(youtube_url, api_key=None):
@@ -124,7 +124,7 @@ def get_youtube_video_info(youtube_url, api_key=None):
     """
     video_id = extract_youtube_id(youtube_url)
     if not video_id:
-        raise ValueError("Invalid YouTube URL")
+        raise ValueError('Invalid YouTube URL')
 
     # If API key is provided, fetch details from the API
     if api_key:
@@ -141,18 +141,18 @@ def get_youtube_video_info(youtube_url, api_key=None):
                 
                 return {
                     'youtube_id': video_id,
-                    'thumbnail_url': f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+                    'thumbnail_url': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg',
                     'publish_date': upload_date,
                     'duration_seconds': duration_seconds
                 }
         except Exception as e:
-            logging.error(f"Error fetching video info from API: {e}")
+            logging.error(f'Error fetching video info from API: {e}')
             # Fall back to basic info if API call fails
     
     # Return basic info if no API key is provided or API call failed
     return {
         'youtube_id': video_id,
-        'thumbnail_url': f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+        'thumbnail_url': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg',
         'publish_date': datetime.utcnow()  # Use current date as publish date
     }
 
