@@ -51,7 +51,7 @@ class Collection(db.Model):
 collection_lecture = db.Table('collection_lecture',
     db.Column('collection_id', db.Integer, db.ForeignKey('collection.id')),
     db.Column('lecture_id', db.Integer, db.ForeignKey('lecture.id')),
-    db.Column('position', db.Integer, default=0)
+    db.Column('position', db.Integer, default=0),
 )
 
 
@@ -66,10 +66,10 @@ class Rank(db.Model):
 # Association tables
 lecture_topic = db.Table('lecture_topic',
     db.Column('lecture_id', db.Integer, db.ForeignKey('lecture.id')),
-    db.Column('topic_id', db.Integer, db.ForeignKey('topic.id'))
+    db.Column('topic_id', db.Integer, db.ForeignKey('topic.id')),
 )
 
 lecture_tag = db.Table('lecture_tag',
     db.Column('lecture_id', db.Integer, db.ForeignKey('lecture.id')),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id')),
 )

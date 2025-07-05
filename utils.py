@@ -80,7 +80,7 @@ def get_youtube_video_info(url, api_key=None):
     # Parse publish date
     publish_date = datetime.strptime(
         video_info['snippet']['publishedAt'], 
-        '%Y-%m-%dT%H:%M:%SZ'
+        '%Y-%m-%dT%H:%M:%SZ',
     )
 
     # Get thumbnail URL (highest quality available)
@@ -97,5 +97,5 @@ def get_youtube_video_info(url, api_key=None):
         'title': video_info['snippet']['title'],
         'publish_date': publish_date,
         'thumbnail_url': thumbnail_url,
-        'duration_seconds': duration_seconds
+        'duration_seconds': duration_seconds,
     }

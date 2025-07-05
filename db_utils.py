@@ -12,7 +12,7 @@ def get_metadata():
         'topics': Topic.query.all(),
         'tags': Tag.query.all(),
         'ranks': Rank.query.all(),
-        'collections': Collection.query.all()
+        'collections': Collection.query.all(),
     }
 
 def get_filtered_lectures_query():
@@ -20,7 +20,7 @@ def get_filtered_lectures_query():
     query = Lecture.query.options(
         db.joinedload(Lecture.topics),
         db.joinedload(Lecture.tags),
-        db.joinedload(Lecture.rank)
+        db.joinedload(Lecture.rank),
     ).distinct()
     
     return query
@@ -66,9 +66,9 @@ def get_collection_lectures(collection_id):
     """Get lectures for a collection with proper ordering"""
     query = db.session.query(Lecture).join(
         collection_lecture,
-        Lecture.id == collection_lecture.c.lecture_id
+        Lecture.id == collection_lecture.c.lecture_id,
     ).filter(
-        collection_lecture.c.collection_id == collection_id
+        collection_lecture.c.collection_id == collection_id,
     )
 
     # Try to order by position if the column exists

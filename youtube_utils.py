@@ -72,7 +72,7 @@ def fetch_playlist_videos(api_key, playlist_id):
                     'video_id': video_id,
                     'thumbnail_url': snippet.get('thumbnails', {}).get('high', {}).get('url', ''),
                     'published_at': upload_date,
-                    'duration_seconds': duration_seconds
+                    'duration_seconds': duration_seconds,
                 }
                 videos.append(video)
 
@@ -109,7 +109,7 @@ def get_video_details(api_key, video_ids):
                 
                 result[video_id] = {
                     'duration': content_details.get('duration', 'PT0S'),
-                    'upload_date': snippet.get('publishedAt')
+                    'upload_date': snippet.get('publishedAt'),
                 }
 
         return result
@@ -143,7 +143,7 @@ def get_youtube_video_info(youtube_url, api_key=None):
                     'youtube_id': video_id,
                     'thumbnail_url': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg',
                     'publish_date': upload_date,
-                    'duration_seconds': duration_seconds
+                    'duration_seconds': duration_seconds,
                 }
         except Exception as e:
             logging.error(f'Error fetching video info from API: {e}')
@@ -153,7 +153,7 @@ def get_youtube_video_info(youtube_url, api_key=None):
     return {
         'youtube_id': video_id,
         'thumbnail_url': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg',
-        'publish_date': datetime.utcnow()  # Use current date as publish date
+        'publish_date': datetime.utcnow(),  # Use current date as publish date
     }
 
 def parse_duration(duration_iso):

@@ -10,7 +10,7 @@ from forms import LoginForm, LectureForm, MetadataForm, CollectionForm
 from utils import get_youtube_video_info
 from db_utils import (
     get_metadata, get_filtered_lectures_query, apply_search_filters,
-    safe_commit, get_collection_lectures
+    safe_commit, get_collection_lectures,
 )
 from youtube_utils import extract_playlist_id, fetch_playlist_videos
 
@@ -51,7 +51,7 @@ def api_search():
             'q': request.args.get('q', ''),
             'topics': request.args.getlist('topics[]'),
             'tags': request.args.getlist('tags[]'),
-            'rank': request.args.get('rank')
+            'rank': request.args.get('rank'),
         }
 
         # Get base query and apply filters
@@ -74,14 +74,14 @@ def api_search():
                 'duration_seconds': lecture.duration_seconds,
                 'topics': [t.name for t in lecture.topics],
                 'tags': [t.name for t in lecture.tags],
-                'rank': lecture.rank.name if lecture.rank else None
+                'rank': lecture.rank.name if lecture.rank else None,
             })
 
         return jsonify({
             'lectures': lecture_data,
             'has_next': pagination.has_next,
             'total_pages': pagination.pages,
-            'current_page': pagination.page
+            'current_page': pagination.page,
         })
     except Exception as e:
         logging.error(f'Error in api_search: {str(e)}')
@@ -155,7 +155,7 @@ def edit_lecture(lecture_id):
             # First get current collections
             current_collections = Collection.query.join(
                 collection_lecture,
-                Collection.id == collection_lecture.c.collection_id
+                Collection.id == collection_lecture.c.collection_id,
             ).filter(collection_lecture.c.lecture_id == lecture.id).all()
 
             # Remove lecture from collections that are no longer selected
@@ -190,7 +190,7 @@ def edit_lecture(lecture_id):
         # Get all collections that contain this lecture
         lecture_collections = Collection.query.join(
             collection_lecture,
-            Collection.id == collection_lecture.c.collection_id
+            Collection.id == collection_lecture.c.collection_id,
         ).filter(collection_lecture.c.lecture_id == lecture.id).all()
 
         form.collections.data = [collection.id for collection in lecture_collections]
@@ -350,28 +350,28 @@ def export_data():
             'topics': [],
             'tags': [],
             'ranks': [],
-            'collections': []
+            'collections': [],
         }
 
         # Add topics
         for topic in topics:
             export_data['topics'].append({
                 'id': topic.id,
-                'name': topic.name
+                'name': topic.name,
             })
 
         # Add tags
         for tag in tags:
             export_data['tags'].append({
                 'id': tag.id,
-                'name': tag.name
+                'name': tag.name,
             })
 
         # Add ranks
         for rank in ranks:
             export_data['ranks'].append({
                 'id': rank.id,
-                'name': rank.name
+                'name': rank.name,
             })
 
         # Add collections
@@ -381,13 +381,13 @@ def export_data():
             for lecture in collection.lectures:
                 position_data = db.session.query(collection_lecture.c.position).filter(
                     collection_lecture.c.collection_id == collection.id,
-                    collection_lecture.c.lecture_id == lecture.id
+                    collection_lecture.c.lecture_id == lecture.id,
                 ).first()
 
                 position = position_data[0] if position_data else 0
                 lecture_positions.append({
                     'lecture_id': lecture.id,
-                    'position': position
+                    'position': position,
                 })
 
             # Sort by position
@@ -399,7 +399,7 @@ def export_data():
                 'description': collection.description,
 
                 'created_at': collection.created_at.isoformat() if collection.created_at else None,
-                'lectures': lecture_positions
+                'lectures': lecture_positions,
             })
 
         # Add lectures
@@ -416,8 +416,8 @@ def export_data():
                 'tag_ids': [tag.id for tag in lecture.tags],
                 'collection_ids': [c.id for c in Collection.query.join(
                     collection_lecture, 
-                    Collection.id == collection_lecture.c.collection_id
-                ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
+                    Collection.id == collection_lecture.c.collection_id,
+                ).filter(collection_lecture.c.lecture_id == lecture.id).all()],
             }
             export_data['lectures'].append(lecture_data)
 
@@ -510,7 +510,7 @@ def import_data():
                             new_collection = Collection(
                                 name=collection_data['name'],
                                 description=collection_data.get('description', ''),
-                                created_at=created_at
+                                created_at=created_at,
                             )
                             db.session.add(new_collection)
                             db.session.flush()
@@ -530,7 +530,7 @@ def import_data():
                                 youtube_id=lecture_data['youtube_id'],
                                 thumbnail_url=lecture_data['thumbnail_url'],
                                 publish_date=datetime.fromisoformat(lecture_data['publish_date']),
-                                duration_seconds=lecture_data.get('duration_seconds',0)
+                                duration_seconds=lecture_data.get('duration_seconds',0),
                             )
 
                             # Set rank
@@ -584,7 +584,7 @@ def import_data():
                                                     collection_lecture.update().
                                                     where(collection_lecture.c.collection_id == collection.id).
                                                     where(collection_lecture.c.lecture_id == lecture.id).
-                                                    values(position=position)
+                                                    values(position=position),
                                                 )
 
                                 elif 'lecture_ids' in collection_data:
@@ -601,7 +601,7 @@ def import_data():
                                                     collection_lecture.update().
                                                     where(collection_lecture.c.collection_id == collection.id).
                                                     where(collection_lecture.c.lecture_id == lecture.id).
-                                                    values(position=position)
+                                                    values(position=position),
                                                 )
 
                 db.session.commit()
@@ -632,7 +632,7 @@ def db_export_page():
         'collections': Collection.query.count(),
         'lecture_topics': db.session.query(lecture_topic).count(),
         'lecture_tags': db.session.query(lecture_tag).count(),
-        'collection_lectures': db.session.query(collection_lecture).count()
+        'collection_lectures': db.session.query(collection_lecture).count(),
     }
     
     return render_template('admin/db_export.html', counts=counts)
@@ -659,7 +659,7 @@ def export_table(table_name):
                     'thumbnail_url': lecture.thumbnail_url,
                     'publish_date': lecture.publish_date.isoformat(),
                     'duration_seconds': lecture.duration_seconds,
-                    'rank_id': lecture.rank_id
+                    'rank_id': lecture.rank_id,
                 }
                 export_data['lectures'].append(lecture_data)
                 
@@ -670,7 +670,7 @@ def export_table(table_name):
             for topic in topics:
                 export_data['topics'].append({
                     'id': topic.id,
-                    'name': topic.name
+                    'name': topic.name,
                 })
                 
         elif table_name == 'tags':
@@ -680,7 +680,7 @@ def export_table(table_name):
             for tag in tags:
                 export_data['tags'].append({
                     'id': tag.id,
-                    'name': tag.name
+                    'name': tag.name,
                 })
                 
         elif table_name == 'ranks':
@@ -690,7 +690,7 @@ def export_table(table_name):
             for rank in ranks:
                 export_data['ranks'].append({
                     'id': rank.id,
-                    'name': rank.name
+                    'name': rank.name,
                 })
                 
         elif table_name == 'collections':
@@ -702,7 +702,7 @@ def export_table(table_name):
                     'id': collection.id,
                     'name': collection.name,
                     'description': collection.description,
-                    'created_at': collection.created_at.isoformat() if collection.created_at else None
+                    'created_at': collection.created_at.isoformat() if collection.created_at else None,
                 })
                 
         elif table_name == 'lecture_topics':
@@ -712,7 +712,7 @@ def export_table(table_name):
             for lt in lecture_topics:
                 export_data['lecture_topics'].append({
                     'lecture_id': lt.lecture_id,
-                    'topic_id': lt.topic_id
+                    'topic_id': lt.topic_id,
                 })
                 
         elif table_name == 'lecture_tags':
@@ -722,7 +722,7 @@ def export_table(table_name):
             for lt in lecture_tags:
                 export_data['lecture_tags'].append({
                     'lecture_id': lt.lecture_id,
-                    'tag_id': lt.tag_id
+                    'tag_id': lt.tag_id,
                 })
                 
         elif table_name == 'collection_lectures':
@@ -733,7 +733,7 @@ def export_table(table_name):
                 export_data['collection_lectures'].append({
                     'collection_id': cl.collection_id,
                     'lecture_id': cl.lecture_id,
-                    'position': cl.position
+                    'position': cl.position,
                 })
         else:
             flash(f'Unknown table name: {table_name}')
@@ -827,7 +827,7 @@ def import_table():
                 'collections': import_collections,
                 'lecture_topics': import_lecture_topics,
                 'lecture_tags': import_lecture_tags,
-                'collection_lectures': import_collection_lectures
+                'collection_lectures': import_collection_lectures,
             }
             
             if table_name in table_import_handler:
@@ -899,7 +899,7 @@ def import_lectures(import_data):
                 thumbnail_url=lecture_data['thumbnail_url'],
                 publish_date=publish_date,
                 duration_seconds=lecture_data['duration_seconds'],
-                rank_id=lecture_data['rank_id']
+                rank_id=lecture_data['rank_id'],
             )
             db.session.add(new_lecture)
             count += 1
@@ -920,7 +920,7 @@ def import_collections(import_data):
             new_collection = Collection(
                 name=collection_data['name'],
                 description=collection_data['description'],
-                created_at=created_at
+                created_at=created_at,
             )
             db.session.add(new_collection)
             count += 1
@@ -935,7 +935,7 @@ def import_lecture_topics(import_data):
         # Check if relationship exists
         exists = db.session.query(lecture_topic).filter_by(
             lecture_id=lt_data['lecture_id'],
-            topic_id=lt_data['topic_id']
+            topic_id=lt_data['topic_id'],
         ).first() is not None
         
         if not exists:
@@ -946,7 +946,7 @@ def import_lecture_topics(import_data):
             if lecture and topic:
                 db.session.execute(
                     db.text('INSERT INTO lecture_topic (lecture_id, topic_id) VALUES (:lecture_id, :topic_id)'),
-                    {'lecture_id': lt_data['lecture_id'], 'topic_id': lt_data['topic_id']}
+                    {'lecture_id': lt_data['lecture_id'], 'topic_id': lt_data['topic_id']},
                 )
                 count += 1
             
@@ -960,7 +960,7 @@ def import_lecture_tags(import_data):
         # Check if relationship exists
         exists = db.session.query(lecture_tag).filter_by(
             lecture_id=lt_data['lecture_id'],
-            tag_id=lt_data['tag_id']
+            tag_id=lt_data['tag_id'],
         ).first() is not None
         
         if not exists:
@@ -971,7 +971,7 @@ def import_lecture_tags(import_data):
             if lecture and tag:
                 db.session.execute(
                     db.text('INSERT INTO lecture_tag (lecture_id, tag_id) VALUES (:lecture_id, :tag_id)'),
-                    {'lecture_id': lt_data['lecture_id'], 'tag_id': lt_data['tag_id']}
+                    {'lecture_id': lt_data['lecture_id'], 'tag_id': lt_data['tag_id']},
                 )
                 count += 1
             
@@ -985,7 +985,7 @@ def import_collection_lectures(import_data):
         # Check if relationship exists
         exists = db.session.query(collection_lecture).filter_by(
             collection_id=cl_data['collection_id'],
-            lecture_id=cl_data['lecture_id']
+            lecture_id=cl_data['lecture_id'],
         ).first() is not None
         
         if not exists:
@@ -1021,28 +1021,28 @@ def reset_data():
             'topics': [],
             'tags': [],
             'ranks': [],
-            'collections': []
+            'collections': [],
         }
 
         # Add topics
         for topic in topics:
             export_data['topics'].append({
                 'id': topic.id,
-                'name': topic.name
+                'name': topic.name,
             })
 
         # Add tags
         for tag in tags:
             export_data['tags'].append({
                 'id': tag.id,
-                'name': tag.name
+                'name': tag.name,
             })
 
         # Add ranks
         for rank in ranks:
             export_data['ranks'].append({
                 'id': rank.id,
-                'name': rank.name
+                'name': rank.name,
             })
 
         # Add collections with full details
@@ -1052,13 +1052,13 @@ def reset_data():
             for lecture in collection.lectures:
                 position_data = db.session.query(collection_lecture.c.position).filter(
                     collection_lecture.c.collection_id == collection.id,
-                    collection_lecture.c.lecture_id == lecture.id
+                    collection_lecture.c.lecture_id == lecture.id,
                 ).first()
 
                 position = position_data[0] if position_data else 0
                 lecture_positions.append({
                     'lecture_id': lecture.id,
-                    'position': position
+                    'position': position,
                 })
 
             # Sort by position
@@ -1070,7 +1070,7 @@ def reset_data():
                 'description': collection.description,
 
                 'created_at': collection.created_at.isoformat() if collection.created_at else None,
-                'lectures': lecture_positions
+                'lectures': lecture_positions,
             })
 
         # Add lectures
@@ -1087,8 +1087,8 @@ def reset_data():
                 'tag_ids': [tag.id for tag in lecture.tags],
                 'collection_ids': [c.id for c in Collection.query.join(
                     collection_lecture, 
-                    Collection.id == collection_lecture.c.collection_id
-                ).filter(collection_lecture.c.lecture_id == lecture.id).all()]
+                    Collection.id == collection_lecture.c.collection_id,
+                ).filter(collection_lecture.c.lecture_id == lecture.id).all()],
             }
             export_data['lectures'].append(lecture_data)
 
@@ -1164,9 +1164,9 @@ def delete_lecture(lecture_id):
         # We need to do this because we don't have a direct "collections" attribute on Lecture
         collections = Collection.query.join(
             collection_lecture,
-            Collection.id == collection_lecture.c.collection_id
+            Collection.id == collection_lecture.c.collection_id,
         ).filter(
-            collection_lecture.c.lecture_id == lecture_id
+            collection_lecture.c.lecture_id == lecture_id,
         ).all()
         
         # Remove from all collections
@@ -1213,7 +1213,7 @@ def collections():
             'hours': hours, 
             'minutes': minutes, 
             'seconds': seconds,
-            'total_seconds': total_duration_seconds
+            'total_seconds': total_duration_seconds,
         }
     
     return render_template('collections.html', collections=collections)
@@ -1281,7 +1281,7 @@ def reorder_collection_lectures_frontend(collection_id):
                 collection_lecture.update().
                 where(collection_lecture.c.collection_id == collection_id).
                 where(collection_lecture.c.lecture_id == lecture_id).
-values(position=position)
+values(position=position),
 
             )
 
@@ -1301,7 +1301,7 @@ def manage_collections():
         if 'add_collection' in request.form and form.validate_on_submit():
             collection = Collection(
                 name=form.name.data,
-                description=form.description.data
+                description=form.description.data,
             )
             db.session.add(collection)
             db.session.commit()
@@ -1327,12 +1327,12 @@ def edit_collection(collection_id):
 
     # Get lectures for this collection
     lectures_query = db.session.query(
-        Lecture
+        Lecture,
     ).join(
         collection_lecture,
-        Lecture.id == collection_lecture.c.lecture_id
+        Lecture.id == collection_lecture.c.lecture_id,
     ).filter(
-        collection_lecture.c.collection_id == collection_id
+        collection_lecture.c.collection_id == collection_id,
     )
 
     # Try to order by position if it exists
@@ -1378,8 +1378,8 @@ def edit_collection(collection_id):
                 {
                     'name': new_name,
                     'description': new_desc,
-                    'id': collection_id
-                }
+                    'id': collection_id,
+                },
             )
 
             db.session.commit()
@@ -1415,7 +1415,7 @@ def bulk_add_lectures(collection_id):
     
     # Get all existing lecture IDs in this collection
     existing_lecture_ids = db.session.query(collection_lecture.c.lecture_id).filter(
-        collection_lecture.c.collection_id == collection_id
+        collection_lecture.c.collection_id == collection_id,
     ).all()
     existing_lecture_ids = [lid[0] for lid in existing_lecture_ids]
     
@@ -1439,7 +1439,7 @@ def bulk_add_lectures(collection_id):
         try:
             # Get the maximum position in the collection
             max_position_result = db.session.query(db.func.max(collection_lecture.c.position)).filter(
-                collection_lecture.c.collection_id == collection_id
+                collection_lecture.c.collection_id == collection_id,
             ).first()
             max_position = max_position_result[0] if max_position_result[0] is not None else 0
             
@@ -1455,8 +1455,8 @@ def bulk_add_lectures(collection_id):
                     {
                         'collection_id': collection_id,
                         'lecture_id': lecture_id,
-                        'position': position
-                    }
+                        'position': position,
+                    },
                 )
             
             db.session.commit()
@@ -1501,7 +1501,7 @@ def reorder_collection_lectures(collection_id):
                 collection_lecture.update().
                 where(collection_lecture.c.collection_id == collection_id).
                 where(collection_lecture.c.lecture_id == lecture_id).
-                values(position=position)
+                values(position=position),
             )
 
         db.session.commit()
@@ -1528,14 +1528,14 @@ def move_lecture_position(collection_id):
         # Get all lectures in this collection with their positions
         lectures_positions = db.session.query(
             Lecture.id, 
-            collection_lecture.c.position
+            collection_lecture.c.position,
         ).join(
             collection_lecture,
-            Lecture.id == collection_lecture.c.lecture_id
+            Lecture.id == collection_lecture.c.lecture_id,
         ).filter(
-            collection_lecture.c.collection_id == collection_id
+            collection_lecture.c.collection_id == collection_id,
         ).order_by(
-            collection_lecture.c.position
+            collection_lecture.c.position,
         ).all()
 
         # Find the current position of the lecture to move
@@ -1567,7 +1567,7 @@ def move_lecture_position(collection_id):
                 where(collection_lecture.c.collection_id == collection_id).
                 where(collection_lecture.c.position > current_position).
                 where(collection_lecture.c.position <= new_position).
-                values(position=collection_lecture.c.position - 1)
+                values(position=collection_lecture.c.position - 1),
             )
         else:
             # Moving up: shift lectures between new and current-1 down by 1
@@ -1576,7 +1576,7 @@ def move_lecture_position(collection_id):
                 where(collection_lecture.c.collection_id == collection_id).
                 where(collection_lecture.c.position >= new_position).
                 where(collection_lecture.c.position < current_position).
-                values(position=collection_lecture.c.position + 1)
+                values(position=collection_lecture.c.position + 1),
             )
 
         # Finally, update the position of the lecture being moved
@@ -1584,7 +1584,7 @@ def move_lecture_position(collection_id):
             collection_lecture.update().
             where(collection_lecture.c.collection_id == collection_id).
             where(collection_lecture.c.lecture_id == lecture_id).
-            values(position=new_position)
+            values(position=new_position),
         )
 
         db.session.commit()
@@ -1679,7 +1679,7 @@ def playlist_import():
                         thumbnail_url=current_video['thumbnail_url'],
                         publish_date=current_video['published_at'],
                         duration_seconds=current_video.get('duration_seconds', 0),
-                        rank_id=rank_id
+                        rank_id=rank_id,
                     )
 
                     # Add topic (required)
@@ -1814,7 +1814,7 @@ def video_import():
                     thumbnail_url=thumbnail_url,
                     publish_date=publish_date,
                     duration_seconds=int(duration_seconds) if duration_seconds else 0,
-                    rank_id=rank_id
+                    rank_id=rank_id,
                 )
 
                 # Add topic (required)
